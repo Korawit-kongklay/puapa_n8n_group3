@@ -669,16 +669,41 @@ export default function HomePage() {
                   >
                     Creator *
                   </Label>
-                  <Input
-                    id="creator"
-                    type="text"
+                  <Select
                     value={formData.creator}
-                    onChange={(e) =>
-                      handleInputChange("creator", e.target.value)
+                    onValueChange={(value) =>
+                      handleInputChange("creator", value)
                     }
-                    className={`rounded-lg ${errors.creator ? "border-red-300" : "border-gray-300"}`}
-                    placeholder="Enter creator name"
-                  />
+                  >
+                    <SelectTrigger
+                      className={`rounded-lg ${errors.creator ? "border-red-300" : "border-gray-300"}`}
+                    >
+                      <SelectValue
+                        placeholder={
+                          isLoadingMembers
+                            ? "Loading members..."
+                            : "Select creator"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {isLoadingMembers ? (
+                        <SelectItem value="" disabled>
+                          Loading...
+                        </SelectItem>
+                      ) : members.length === 0 ? (
+                        <SelectItem value="" disabled>
+                          No members available
+                        </SelectItem>
+                      ) : (
+                        members.map((member) => (
+                          <SelectItem key={member.id} value={member.name}>
+                            {member.name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
                   {errors.creator && (
                     <p className="text-sm text-red-600">{errors.creator}</p>
                   )}
