@@ -169,8 +169,10 @@ export default function HomePage() {
     if (!formData.version || formData.version <= 0) {
       newErrors.version = "Version must be a positive number";
     }
-    if (!formData["meeting-room"] || formData["meeting-room"] <= 0) {
-      newErrors["meeting-room"] = "Meeting room must be a positive number";
+    if (!formData.meeting_room || formData.meeting_room <= 0) {
+      newErrors.meeting_room = "Meeting room must be a positive number";
+    } else if (formData.meeting_room > 5) {
+      newErrors.meeting_room = "Meeting room number cannot exceed 5";
     }
     if (!formData.end_time) {
       newErrors.end_time = "End time is required";
