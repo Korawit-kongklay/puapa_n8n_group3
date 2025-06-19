@@ -217,7 +217,7 @@ export default function HomePage() {
         creator: "",
         member: "",
         version: 1,
-        "meeting-room": 0,
+        meeting_room: 0,
         end_date: "",
         end_time: "",
       });
