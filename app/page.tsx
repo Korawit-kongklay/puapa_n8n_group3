@@ -726,63 +726,87 @@ export default function HomePage() {
                 {/* Member Field - Multi Select */}
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-gray-700">
-                    Members * (Select multiple)
+                    Members *
                   </Label>
 
-                  {/* Add Member Dropdown */}
-                  <div className="flex space-x-2">
-                    <Select
-                      value={memberToAdd}
-                      onValueChange={(value) => setMemberToAdd(value)}
-                    >
-                      <SelectTrigger
-                        className={`flex-1 rounded-lg ${errors.member ? "border-red-300" : "border-gray-300"}`}
-                      >
-                        <SelectValue
-                          placeholder={
-                            isLoadingMembers
-                              ? "Loading members..."
-                              : "Select member to add"
+                  {/* Show different interface based on member loading status */}
+                  {members.length > 0 ? (
+                    <>
+                      {/* Dropdown interface when members are loaded */}
+                      <div className="flex space-x-2">
+                        <Select
+                          value={memberToAdd}
+                          onValueChange={(value) => setMemberToAdd(value)}
+                        >
+                          <SelectTrigger
+                            className={`flex-1 rounded-lg ${errors.member ? "border-red-300" : "border-gray-300"}`}
+                          >
+                            <SelectValue placeholder="Select member to add" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {members
+                              .filter(
+                                (member) =>
+                                  !selectedMembers.includes(member.name),
+                              )
+                              .map((member) => (
+                                <SelectItem key={member.id} value={member.name}>
+                                  {member.name}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          type="button"
+                          onClick={() => addMember(memberToAdd)}
+                          disabled={
+                            !memberToAdd ||
+                            selectedMembers.includes(memberToAdd)
                           }
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {isLoadingMembers ? (
-                          <SelectItem value="loading" disabled>
-                            Loading...
-                          </SelectItem>
-                        ) : members.length === 0 ? (
-                          <SelectItem value="no-members" disabled>
-                            No members available
-                          </SelectItem>
-                        ) : (
-                          members
-                            .filter(
-                              (member) =>
-                                !selectedMembers.includes(member.name),
-                            )
-                            .map((member) => (
-                              <SelectItem key={member.id} value={member.name}>
-                                {member.name}
-                              </SelectItem>
-                            ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      type="button"
-                      onClick={() => addMember(memberToAdd)}
-                      disabled={
-                        !memberToAdd ||
-                        memberToAdd === "loading" ||
-                        memberToAdd === "no-members" ||
-                        selectedMembers.includes(memberToAdd)
-                      }
-                      className="rounded-lg px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
-                    >
-                      Add
-                    </Button>
-                  </div>
+                          className="rounded-lg px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
+                        >
+                          Add
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* Manual input interface when members can't be loaded */}
+                      <div className="space-y-2">
+                        <div className="flex space-x-2">
+                          <Input
+                            type="text"
+                            value={memberToAdd}
+                            onChange={(e) => setMemberToAdd(e.target.value)}
+                            className={`flex-1 rounded-lg ${errors.member ? "border-red-300" : "border-gray-300"}`}
+                            placeholder="Type member name"
+                            onKeyPress={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                addMember(memberToAdd);
+                              }
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            onClick={() => addMember(memberToAdd)}
+                            disabled={
+                              !memberToAdd.trim() ||
+                              selectedMembers.includes(memberToAdd.trim())
+                            }
+                            className="rounded-lg px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
+                          >
+                            Add
+                          </Button>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {isLoadingMembers
+                            ? "Loading member list..."
+                            : "Type member names and click Add"}
+                        </p>
+                      </div>
+                    </>
+                  )}
 
                   {/* Selected Members Display */}
                   {selectedMembers.length > 0 && (
