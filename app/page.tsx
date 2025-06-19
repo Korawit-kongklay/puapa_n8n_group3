@@ -521,7 +521,7 @@ export default function HomePage() {
                     className="text-sm font-medium text-gray-700 flex items-center"
                   >
                     <Clock className="h-4 w-4 mr-2" />
-                    Time *
+                    Start Time *
                   </Label>
                   <Input
                     id="time"
@@ -534,6 +534,34 @@ export default function HomePage() {
                     <p className="text-sm text-red-600">{errors.time}</p>
                   )}
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* End Time Field */}
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="end_time"
+                    className="text-sm font-medium text-gray-700 flex items-center"
+                  >
+                    <Clock className="h-4 w-4 mr-2" />
+                    End Time *
+                  </Label>
+                  <Input
+                    id="end_time"
+                    type="time"
+                    value={formData.end_time}
+                    onChange={(e) =>
+                      handleInputChange("end_time", e.target.value)
+                    }
+                    className={`rounded-lg ${errors.end_time ? "border-red-300" : "border-gray-300"}`}
+                  />
+                  {errors.end_time && (
+                    <p className="text-sm text-red-600">{errors.end_time}</p>
+                  )}
+                </div>
+
+                {/* Spacer for alignment */}
+                <div></div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
