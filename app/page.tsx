@@ -345,6 +345,8 @@ export default function HomePage() {
         end_date: "",
         end_time: "",
       });
+      setSelectedMembers([]);
+      setMemberToAdd("");
     } catch (error) {
       console.error("Submission error:", error);
       setMessage({
