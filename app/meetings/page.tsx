@@ -35,7 +35,7 @@ async function fetchMeetingsData(): Promise<{
 }> {
   try {
     const response = await fetch(
-      "https://script.google.com/macros/s/AKfycbxu9ncMrvEtWSRbuoWqBA6EDjVpkrdbchRJNBZemWzh0kIdYj5Iyn1qyQ8inOF4CVke/exec",
+      "https://script.google.com/macros/s/AKfycbyXeVxE-jmRQgyH8fblZU7EocCy2eOT_Qnq6j22YiFoT45jVXG_RXtGPHtsRtroLcPs/exec?sheet=Meetings",
       {
         method: "GET",
         cache: "no-store",
