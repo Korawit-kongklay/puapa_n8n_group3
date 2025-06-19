@@ -29,7 +29,7 @@ interface MeetingData {
   creator: string;
   member: string;
   version: number;
-  "meeting-room": number;
+  meeting_room: number;
   end_date: string;
   end_time: string;
 }
