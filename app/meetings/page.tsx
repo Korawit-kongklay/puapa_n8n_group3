@@ -22,11 +22,68 @@ interface MeetingData {
   end_date: string;
 }
 
-// Mock function to fetch meetings - replace with actual API call
-async function fetchMeetings(): Promise<MeetingData[]> {
-  // This is a placeholder - in a real app, you'd fetch from your backend
-  // For now, return empty array or mock data
-  return [];
+interface ApiResponse {
+  meetings?: MeetingData[];
+  error?: string;
+  details?: string;
+}
+
+async function fetchMeetingsData(): Promise<{
+  meetings: MeetingData[];
+  error?: string;
+  details?: string;
+}> {
+  try {
+    const response = await fetch(
+      "https://script.google.com/macros/s/AKfycbz5OjDVKk9TUVyWJ1fXPh2PqH_bEZ3mO3ANNSggAImDiEd8lLdNJKSOs4DXpi_XvmxP/exec",
+      {
+        method: "GET",
+        cache: "no-store",
+      },
+    );
+    console.log(response);
+    const data: ApiResponse = await response.json();
+    console.log(data);
+
+    // Handle API error responses
+    if (!response.ok) {
+      return {
+        meetings: [],
+        error: data.error || `API Error: ${response.status}`,
+        details: data.details,
+      };
+    }
+
+    // Handle error response from API
+    if (data.error) {
+      return {
+        meetings: [],
+        error: data.error,
+        details: data.details,
+      };
+    }
+
+    if (!data.meetings || !Array.isArray(data.meetings)) {
+      return {
+        meetings: [],
+        error: "Invalid response format",
+        details: "Expected 'meetings' array in API response",
+      };
+    }
+
+    return {
+      meetings: data.meetings,
+    };
+  } catch (error) {
+    console.error("Failed to fetch meetings:", error);
+
+    return {
+      meetings: [],
+      error: "Network error",
+      details:
+        error instanceof Error ? error.message : "Unknown error occurred",
+    };
+  }
 }
 
 export default function ViewMeetingsPage() {
