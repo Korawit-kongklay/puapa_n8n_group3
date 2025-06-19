@@ -394,27 +394,29 @@ export default function HomePage() {
                 {/* Meeting Room Field */}
                 <div className="space-y-2">
                   <Label
-                    htmlFor="meeting-room"
+                    htmlFor="meeting_room"
                     className="text-sm font-medium text-gray-700"
                   >
-                    Meeting Room *
+                    Meeting Room * (1-5)
                   </Label>
                   <Input
-                    id="meeting-room"
+                    id="meeting_room"
                     type="number"
-                    value={formData["meeting-room"] || ""}
+                    min="1"
+                    max="5"
+                    value={formData.meeting_room || ""}
                     onChange={(e) =>
                       handleInputChange(
-                        "meeting-room",
+                        "meeting_room",
                         Number.parseInt(e.target.value) || 0,
                       )
                     }
-                    className={`rounded-lg ${errors["meeting-room"] ? "border-red-300" : "border-gray-300"}`}
-                    placeholder="Enter room number"
+                    className={`rounded-lg ${errors.meeting_room ? "border-red-300" : "border-gray-300"}`}
+                    placeholder="Enter room number (1-5)"
                   />
-                  {errors["meeting-room"] && (
+                  {errors.meeting_room && (
                     <p className="text-sm text-red-600">
-                      {errors["meeting-room"]}
+                      {errors.meeting_room}
                     </p>
                   )}
                 </div>
