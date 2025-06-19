@@ -34,6 +34,74 @@ interface MeetingData {
   end_time: string;
 }
 
+interface Member {
+  id: number;
+  name: string;
+}
+
+interface MembersApiResponse {
+  members?: Member[];
+  error?: string;
+  details?: string;
+}
+
+async function fetchMembers(): Promise<{
+  members: Member[];
+  error?: string;
+  details?: string;
+}> {
+  try {
+    const response = await fetch(
+      "https://script.google.com/macros/s/AKfycbyXeVxE-jmRQgyH8fblZU7EocCy2eOT_Qnq6j22YiFoT45jVXG_RXtGPHtsRtroLcPs/exec?sheet=Members",
+      {
+        method: "GET",
+        cache: "no-store",
+      },
+    );
+
+    const data: MembersApiResponse = await response.json();
+
+    // Handle API error responses
+    if (!response.ok) {
+      return {
+        members: [],
+        error: data.error || `API Error: ${response.status}`,
+        details: data.details,
+      };
+    }
+
+    // Handle error response from API
+    if (data.error) {
+      return {
+        members: [],
+        error: data.error,
+        details: data.details,
+      };
+    }
+
+    if (!data.members || !Array.isArray(data.members)) {
+      return {
+        members: [],
+        error: "Invalid response format",
+        details: "Expected 'members' array in API response",
+      };
+    }
+
+    return {
+      members: data.members,
+    };
+  } catch (error) {
+    console.error("Failed to fetch members:", error);
+
+    return {
+      members: [],
+      error: "Network error",
+      details:
+        error instanceof Error ? error.message : "Unknown error occurred",
+    };
+  }
+}
+
 async function submitMeeting(data: MeetingData) {
   // Combine date and time into proper ISO 8601 format
   let isoDateTime = "";
