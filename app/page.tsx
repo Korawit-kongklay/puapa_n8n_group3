@@ -197,6 +197,28 @@ export default function HomePage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(true);
 
+  // Load members on component mount
+  useEffect(() => {
+    const loadMembers = async () => {
+      try {
+        setIsLoadingMembers(true);
+        const result = await fetchMembers();
+
+        if (result.error) {
+          console.error("Failed to load members:", result.error);
+        } else {
+          setMembers(result.members);
+        }
+      } catch (error) {
+        console.error("Error loading members:", error);
+      } finally {
+        setIsLoadingMembers(false);
+      }
+    };
+
+    loadMembers();
+  }, []);
+
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
