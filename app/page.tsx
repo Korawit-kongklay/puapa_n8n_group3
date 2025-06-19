@@ -314,9 +314,22 @@ export default function HomePage() {
                   <Calendar className="h-4 w-4 mr-2" />
                   ISO 8601 Format Preview:
                 </Label>
-                <code className="text-sm text-green-700 bg-green-100 px-2 py-1 rounded">
-                  {`${formData.date}T${formData.time}:00.000Z`}
-                </code>
+                <div className="space-y-1">
+                  <div>
+                    <span className="text-xs text-green-600">Start: </span>
+                    <code className="text-sm text-green-700 bg-green-100 px-2 py-1 rounded">
+                      {`${formData.date}T${formData.time}:00.000Z`}
+                    </code>
+                  </div>
+                  {formData.end_time && (
+                    <div>
+                      <span className="text-xs text-green-600">End: </span>
+                      <code className="text-sm text-green-700 bg-green-100 px-2 py-1 rounded">
+                        {`${formData.date}T${formData.end_time}:00.000Z`}
+                      </code>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
