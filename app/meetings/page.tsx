@@ -247,7 +247,7 @@ export default function ViewMeetingsPage() {
           </Card>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {meetings.map((meeting) => {
+            {meetings.map((meeting, index) => {
               const startDateTime = formatDateTime(meeting.date);
               const endDateTime = formatDateTime(meeting.end_date);
               const duration = getMeetingDuration(
@@ -255,9 +255,12 @@ export default function ViewMeetingsPage() {
                 meeting.end_date,
               );
 
+              // Create unique key using multiple fields to avoid duplicates
+              const uniqueKey = `${meeting.id}-${meeting.topic}-${meeting.date}-${index}`;
+
               return (
                 <Card
-                  key={meeting.id}
+                  key={uniqueKey}
                   className="rounded-xl shadow-lg hover:shadow-xl transition-shadow"
                   style={{ backgroundColor: "#F5F5F5" }}
                 >
