@@ -37,19 +37,28 @@ interface MeetingData {
 async function submitMeeting(data: MeetingData) {
   // Combine date and time into proper ISO 8601 format
   let isoDateTime = "";
+  let isoEndDateTime = "";
+
   if (data.date && data.time) {
     // Create ISO 8601 datetime: YYYY-MM-DDTHH:mm:ss.sssZ
     isoDateTime = `${data.date}T${data.time}:00.000Z`;
   }
 
-  // Create submission data with proper ISO 8601 date
+  if (data.date && data.end_time) {
+    // Create end date ISO 8601 datetime
+    isoEndDateTime = `${data.date}T${data.end_time}:00.000Z`;
+  }
+
+  // Create submission data with proper ISO 8601 dates
   const submissionData = {
     ...data,
     date: isoDateTime, // Replace date with full ISO 8601 format
+    end_date: isoEndDateTime, // Add end_date in ISO 8601 format
   };
 
-  // Remove the separate time field since it's now combined with date
+  // Remove the separate time fields since they're now combined with dates
   delete (submissionData as any).time;
+  delete (submissionData as any).end_time;
 
   try {
     // Primary method: JSON with no-cors
