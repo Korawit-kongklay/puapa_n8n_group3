@@ -221,6 +221,36 @@ export default function HomePage() {
     loadMembers();
   }, []);
 
+  // Update member field when selectedMembers changes
+  const updateMemberField = (members: string[]) => {
+    const memberString = members.join(", ");
+    setFormData((prev) => ({ ...prev, member: memberString }));
+  };
+
+  // Add member to selection
+  const addMember = (memberName: string) => {
+    if (
+      memberName &&
+      memberName !== "loading" &&
+      memberName !== "no-members" &&
+      !selectedMembers.includes(memberName)
+    ) {
+      const newSelectedMembers = [...selectedMembers, memberName];
+      setSelectedMembers(newSelectedMembers);
+      updateMemberField(newSelectedMembers);
+      setMemberToAdd("");
+    }
+  };
+
+  // Remove member from selection
+  const removeMember = (memberName: string) => {
+    const newSelectedMembers = selectedMembers.filter(
+      (name) => name !== memberName,
+    );
+    setSelectedMembers(newSelectedMembers);
+    updateMemberField(newSelectedMembers);
+  };
+
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
