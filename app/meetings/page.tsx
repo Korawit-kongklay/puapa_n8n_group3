@@ -1,572 +1,267 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Calendar, Users, RefreshCw, AlertCircle, Clock, Shield, Edit, Trash2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import Link from "next/link"
+import type React from "react";
 
-interface Meeting {
-  id: number
-  topic: string
-  description: string
-  type: string
-  date: string
-  creator: string
-  member: string
-  version: number
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Calendar, Users, Clock, MapPin, RefreshCw } from "lucide-react";
+import Link from "next/link";
+
+interface MeetingData {
+  id: number;
+  topic: string;
+  description: string;
+  type: string;
+  date: string;
+  creator: string;
+  member: string;
+  version: number;
+  "meeting-room": number;
+  end_date: string;
 }
 
-interface ApiResponse {
-  meetings?: Meeting[]
-  error?: string
-  details?: string
+// Mock function to fetch meetings - replace with actual API call
+async function fetchMeetings(): Promise<MeetingData[]> {
+  // This is a placeholder - in a real app, you'd fetch from your backend
+  // For now, return empty array or mock data
+  return [];
 }
 
-// Mock data for when API fails - using UTC times that convert to reasonable Thailand meeting times
-const MOCK_MEETINGS: Meeting[] = [
-  {
-    id: 1,
-    topic: "Weekly Team Sync",
-    description:
-      "Regular team meeting to discuss progress, blockers, and upcoming tasks. We'll review the sprint progress and plan for next week.",
-    type: "online",
-    date: "2025-06-19T16:00:00.000Z", // 4:00 PM UTC = 9:00 AM Thailand
-    creator: "John Doe",
-    member: "Alice, Bob, Charlie, Diana",
-    version: 1,
-  },
-  {
-    id: 2,
-    topic: "Project Kickoff Meeting",
-    description:
-      "Initial meeting to start the new project phase. We'll discuss requirements, timeline, and resource allocation.",
-    type: "onsite",
-    date: "2025-06-20T21:30:00.000Z", // 9:30 PM UTC = 2:30 PM Thailand
-    creator: "Jane Smith",
-    member: "David, Emma, Frank, Grace",
-    version: 1,
-  },
-  {
-    id: 3,
-    topic: "Client Presentation",
-    description: "Present the final deliverables to the client and gather feedback for future improvements.",
-    type: "online",
-    date: "2025-06-21T23:00:00.000Z", // 11:00 PM UTC = 4:00 PM Thailand
-    creator: "Mike Johnson",
-    member: "Sarah, Tom, Lisa",
-    version: 2,
-  },
-  {
-    id: 4,
-    topic: "Budget Review Meeting",
-    description: "Quarterly budget review and planning for next quarter expenses and resource allocation.",
-    type: "onsite",
-    date: "2025-06-22T17:15:00.000Z", // 5:15 PM UTC = 10:15 AM Thailand
-    creator: "Sarah Wilson",
-    member: "Finance Team, Department Heads",
-    version: 1,
-  },
-  {
-    id: 5,
-    topic: "Product Demo Session",
-    description: "Demonstration of new product features to stakeholders and gathering feedback for improvements.",
-    type: "online",
-    date: "2025-06-23T20:45:00.000Z", // 8:45 PM UTC = 1:45 PM Thailand
-    creator: "Alex Chen",
-    member: "Product Team, Stakeholders",
-    version: 3,
-  },
-]
-
-// Updated function to fetch meetings through our API route
-async function fetchMeetingsData(): Promise<{ meetings: Meeting[]; error?: string; details?: string }> {
-  try {
-    const response = await fetch(
-      "https://script.google.com/macros/s/AKfycbz5OjDVKk9TUVyWJ1fXPh2PqH_bEZ3mO3ANNSggAImDiEd8lLdNJKSOs4DXpi_XvmxP/exec",
-      {
-        method: "GET",
-        cache: "no-store",
-      },
-    )
-    console.log(response)
-    const data: ApiResponse = await response.json()
-    console.log(data)
-    // Handle API error responses
-    if (!response.ok) {
-      return {
-        meetings: [],
-        error: data.error || `API Error: ${response.status}`,
-        details: data.details,
-      }
-    }
-
-    // Handle error response from API
-    if (data.error) {
-      return {
-        meetings: [],
-        error: data.error,
-        details: data.details,
-      }
-    }
-
-    if (!data.meetings || !Array.isArray(data.meetings)) {
-      return {
-        meetings: [],
-        error: "Invalid response format",
-        details: "Expected 'meetings' array in API response",
-      }
-    }
-
-    return {
-      meetings: data.meetings,
-    }
-  } catch (error) {
-    console.error("Failed to fetch meetings:", error)
-
-    return {
-      meetings: [],
-      error: "Network error",
-      details: error instanceof Error ? error.message : "Unknown error occurred",
-    }
-  }
-}
-
-export default function MeetingsPage() {
-  const [meetings, setMeetings] = useState<Meeting[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [errorDetails, setErrorDetails] = useState<string | null>(null)
-  const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set())
+export default function ViewMeetingsPage() {
+  const [meetings, setMeetings] = useState<MeetingData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const loadMeetings = async () => {
-    setIsLoading(true)
-    setError(null)
-    setErrorDetails(null)
-
     try {
-      const result = await fetchMeetingsData()
-
-      if (result.meetings.length > 0) {
-        setMeetings(result.meetings)
-        setError(null)
-        setErrorDetails(null)
-      } else {
-        setMeetings([])
-        setError(result.error || "No meetings found")
-        setErrorDetails(result.details || null)
-      }
-    } catch (error) {
-      console.error("Failed to load meetings:", error)
-      setMeetings([])
-      setError("Failed to load meetings. Please try again.")
-      setErrorDetails(null)
+      setIsLoading(true);
+      setError(null);
+      const data = await fetchMeetings();
+      setMeetings(data);
+    } catch (err) {
+      console.error("Failed to fetch meetings:", err);
+      setError("Failed to load meetings. Please try again.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    loadMeetings()
-  }, [])
+    loadMeetings();
+  }, []);
 
-  const handleRefresh = () => {
-    loadMeetings()
-  }
-
-  const handleEditMeeting = (meetingId: number) => {
-    // Navigate to edit page with meeting ID
-    window.location.href = `/edit-meeting/${meetingId}`
-  }
-
-  const handleDeleteMeeting = async (meetingId: number) => {
-    if (window.confirm("Are you sure you want to delete this meeting?")) {
-      try {
-        // Here you would typically make an API call to delete the meeting
-        // For now, we'll just remove it from the local state
-        setMeetings((prev) => prev.filter((meeting) => meeting.id !== meetingId))
-
-        // You can add actual delete API call here:
-        // await deleteMeetingFromGoogleSheets(meetingId)
-
-        console.log(`Meeting ${meetingId} deleted`)
-      } catch (error) {
-        console.error("Failed to delete meeting:", error)
-        alert("Failed to delete meeting. Please try again.")
-      }
-    }
-  }
-
-  const toggleCardExpansion = (meetingId: number) => {
-    setExpandedCards((prev) => {
-      const newSet = new Set(prev)
-      if (newSet.has(meetingId)) {
-        newSet.delete(meetingId)
-      } else {
-        newSet.add(meetingId)
-      }
-      return newSet
-    })
-  }
-
-  // Format date and time - subtract 7 hours from UTC to get Thailand time
-  const formatDateTime = (isoString: string) => {
+  const formatDateTime = (dateString: string) => {
     try {
-      console.log("Original UTC time:", isoString)
-
-      const date = new Date(isoString)
-
-      // Check if the date is valid
-      if (isNaN(date.getTime())) {
-        // Try parsing as a simple date string if ISO parsing fails
-        const fallbackDate = new Date(isoString.replace(/[-]/g, "/"))
-        if (isNaN(fallbackDate.getTime())) {
-          return { date: "Invalid Date", time: "" }
-        }
-
-        // Subtract 7 hours (7 * 60 * 60 * 1000 milliseconds)
-        const thailandTime = new Date(fallbackDate.getTime() - 7 * 60 * 60 * 1000)
-        console.log("Thailand time (fallback):", thailandTime)
-
-        return {
-          date: thailandTime.toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          }),
-          time: thailandTime.toLocaleTimeString("en-US", {
-            hour: "numeric",
-            minute: "2-digit",
-            hour12: true,
-          }),
-        }
-      }
-
-      // Subtract 7 hours from UTC time to get Thailand time
-      const thailandTime = new Date(date.getTime() - 7 * 60 * 60 * 1000)
-      console.log("Thailand time:", thailandTime)
-
+      const date = new Date(dateString);
       return {
-        date: thailandTime.toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        }),
-        time: thailandTime.toLocaleTimeString("en-US", {
-          hour: "numeric",
+        date: date.toLocaleDateString(),
+        time: date.toLocaleTimeString([], {
+          hour: "2-digit",
           minute: "2-digit",
-          hour12: true,
         }),
+      };
+    } catch (error) {
+      return { date: "Invalid date", time: "Invalid time" };
+    }
+  };
+
+  const getMeetingDuration = (startDate: string, endDate: string) => {
+    try {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const diffMs = end.getTime() - start.getTime();
+      const diffHours = diffMs / (1000 * 60 * 60);
+      const hours = Math.floor(diffHours);
+      const minutes = Math.round((diffHours - hours) * 60);
+
+      if (hours > 0 && minutes > 0) {
+        return `${hours}h ${minutes}m`;
+      } else if (hours > 0) {
+        return `${hours}h`;
+      } else {
+        return `${minutes}m`;
       }
     } catch (error) {
-      console.error("Date parsing error:", error)
-      return { date: "Invalid Date", time: "" }
+      return "Unknown";
     }
-  }
-
-  const getTypeColor = (type: string) => {
-    switch (type.toLowerCase()) {
-      case "meeting":
-        return "bg-blue-100 text-blue-800"
-      case "online":
-        return "bg-green-100 text-green-800"
-      case "onsite":
-        return "bg-purple-100 text-purple-800"
-      default:
-        return "bg-gray-100 text-gray-800"
-    }
-  }
-
-  const isAuthError =
-    error?.includes("authentication") || error?.includes("sign-in") || errorDetails?.includes("sign-in")
+  };
 
   return (
-    <>
-      <style jsx>{`
-        .line-clamp-2 {
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
-        .line-clamp-3 {
-          display: -webkit-box;
-          -webkit-line-clamp: 3;
-          -webkit-box-orient: vertical;
-          overflow: hidden.
-        }
-        .expanded-text {
-          white-space: pre-wrap;
-          word-break: break-word;
-        }
-      `}</style>
-      <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <header className="bg-white shadow-sm border-b">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <div className="flex items-center space-x-2">
-                <Calendar className="h-8 w-8 text-blue-600" />
-                <h1 className="text-2xl font-bold text-gray-900">Meeting Dashboard</h1>
-              </div>
-              <nav className="flex space-x-4">
-                <Link href="/" className="text-gray-600 hover:text-gray-800 font-medium px-3 py-2 rounded-md">
-                  Add Meeting
-                </Link>
-                <Link href="/meetings" className="text-blue-600 hover:text-blue-800 font-medium px-3 py-2 rounded-md">
-                  View Meetings
-                </Link>
-              </nav>
+    <div className="min-h-screen" style={{ backgroundColor: "#ADD8E6" }}>
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-2">
+              <Calendar className="h-8 w-8 text-blue-600" />
+              <h1 className="text-2xl font-bold text-gray-900">Meeting.com</h1>
+            </div>
+            <nav className="flex space-x-4">
+              <Link
+                href="/"
+                className="text-gray-600 hover:text-gray-800 font-medium px-3 py-2 rounded-md"
+              >
+                Add Meeting
+              </Link>
+              <Link
+                href="/meetings"
+                className="text-blue-600 hover:text-blue-800 font-medium px-3 py-2 rounded-md"
+              >
+                View Meetings
+              </Link>
+            </nav>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex items-center space-x-3">
+            <Users className="h-8 w-8 text-gray-700" />
+            <h2 className="text-3xl font-bold text-gray-900">All Meetings</h2>
+          </div>
+          <div className="flex space-x-3">
+            <Button
+              onClick={loadMeetings}
+              disabled={isLoading}
+              className="flex items-center space-x-2 rounded-lg font-medium px-4 py-2 text-black hover:opacity-90 transition-opacity"
+              style={{ backgroundColor: "#90EE90" }}
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+              />
+              <span>Refresh</span>
+            </Button>
+            <Link href="/">
+              <Button className="rounded-lg font-medium px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 transition-colors">
+                Add New Meeting
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        {error && (
+          <Alert className="mb-6 bg-red-50 border-red-200">
+            <AlertDescription className="text-red-800">
+              {error}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {isLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="flex items-center space-x-2">
+              <RefreshCw className="h-6 w-6 animate-spin text-gray-600" />
+              <span className="text-gray-600">Loading meetings...</span>
             </div>
           </div>
-        </header>
-
-        {/* Main Content */}
-        <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-          <Card className="shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-2xl font-bold text-gray-900 flex items-center space-x-2">
-                <Users className="h-6 w-6" />
-                <span>All Meetings</span>
-                {meetings.length > 0 && (
-                  <Badge variant="outline" className="ml-2 text-green-600 border-green-300">
-                    {meetings.length} meeting{meetings.length !== 1 ? "s" : ""}
-                  </Badge>
-                )}
-              </CardTitle>
-              <div className="flex space-x-2">
-                <Button onClick={handleRefresh} disabled={isLoading} variant="outline" className="rounded-lg">
-                  <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
-                  Refresh
+        ) : meetings.length === 0 ? (
+          <Card
+            className="rounded-xl shadow-lg"
+            style={{ backgroundColor: "#F5F5F5" }}
+          >
+            <CardContent className="py-12 text-center">
+              <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                No Meetings Found
+              </h3>
+              <p className="text-gray-600 mb-6">
+                You haven't created any meetings yet.
+              </p>
+              <Link href="/">
+                <Button className="rounded-lg font-medium px-6 py-3 text-white bg-blue-600 hover:bg-blue-700 transition-colors">
+                  Create Your First Meeting
                 </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {/* Error Message */}
-              {error && (
-                <Alert
-                  className={`mb-6 ${isAuthError ? "bg-red-50 border-red-200" : "bg-orange-50 border-orange-200"}`}
-                >
-                  <div className="flex items-start">
-                    {isAuthError ? (
-                      <Shield className="h-4 w-4 mt-0.5 mr-2 text-red-600" />
-                    ) : (
-                      <AlertCircle className="h-4 w-4 mt-0.5 mr-2" />
-                    )}
-                    <div className="flex-1">
-                      <AlertDescription className={isAuthError ? "text-red-800" : "text-orange-800"}>
-                        <div className="space-y-4">
-                          <div>
-                            <p className="font-medium">Google Apps Script Issue</p>
-                            <p className="mt-1">{error}</p>
-                            {errorDetails && <p className="text-sm opacity-90 mt-1">{errorDetails}</p>}
-                          </div>
-
-                          <div className="bg-blue-50 p-3 rounded border border-blue-200">
-                            <h4 className="font-medium text-blue-800 mb-2">✅ Your doGet() Function is Correct!</h4>
-                            <p className="text-sm text-blue-700 mb-2">
-                              The issue is with deployment settings, not your code. Your function should work once
-                              properly deployed.
-                            </p>
-
-                            <div className="text-sm text-blue-700">
-                              <p className="font-medium mb-1">Spreadsheet Info:</p>
-                              <p>
-                                ID:{" "}
-                                <code className="bg-blue-100 px-1 rounded">
-                                  1dCD8km7x-gZlGXwLLLVkH3kkQV5Ww2ZUSbnQMacTfns
-                                </code>
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="bg-red-50 p-3 rounded border border-red-200">
-                            <h4 className="font-medium text-red-800 mb-2">🔧 Try This Fix:</h4>
-                            <ol className="list-decimal list-inside space-y-1 text-sm text-red-700">
-                              <li>
-                                <strong>Delete your current deployment</strong> (don't just edit it)
-                              </li>
-                              <li>
-                                Create a <strong>completely new deployment</strong>
-                              </li>
-                              <li>
-                                Set "Execute as" to <strong>"Me"</strong>
-                              </li>
-                              <li>
-                                Set "Who has access" to <strong>"Anyone"</strong>
-                              </li>
-                              <li>
-                                <strong>Authorize all permissions</strong> when prompted
-                              </li>
-                              <li>
-                                Copy the <strong>new URL</strong> (it will be different)
-                              </li>
-                              <li>Update your code with the new URL</li>
-                            </ol>
-                          </div>
-
-                          <div className="bg-green-50 p-3 rounded border border-green-200">
-                            <h4 className="font-medium text-green-800 mb-2">📋 Expected Data Format:</h4>
-                            <p className="text-sm text-green-700 mb-2">Your spreadsheet should have these columns:</p>
-                            <div className="text-xs text-green-600 font-mono bg-green-100 p-2 rounded">
-                              ID | Topic | Description | Type | Date | Creator | Member | Version
-                            </div>
-                          </div>
-                        </div>
-                      </AlertDescription>
-                    </div>
-                  </div>
-                </Alert>
-              )}
-
-              {/* Loading State */}
-              {isLoading ? (
-                <div className="flex items-center justify-center py-16">
-                  <div className="text-center">
-                    <RefreshCw className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-                    <p className="text-lg text-gray-600">Loading meetings...</p>
-                    <p className="text-sm text-gray-500 mt-2">Fetching data from Google Sheets</p>
-                  </div>
-                </div>
-              ) : meetings.length === 0 ? (
-                /* Empty State */
-                <div className="text-center py-16">
-                  <Calendar className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-xl font-medium text-gray-900 mb-2">No meetings found</h3>
-                  <p className="text-gray-600 mb-6">
-                    {error
-                      ? "Fix the API issue above to view your meetings."
-                      : "There are no meetings to display at the moment. Create your first meeting to get started!"}
-                  </p>
-                  <div className="flex justify-center space-x-4">
-                    <Button onClick={handleRefresh} variant="outline">
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      {isLoading ? "Loading..." : "Try Again"}
-                    </Button>
-                    <Link href="/">
-                      <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                        <Calendar className="h-4 w-4 mr-2" />
-                        Add Meeting
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              ) : (
-                /* Meeting Cards */
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {meetings
-                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                    .map((meeting, index) => {
-                      const { date, time } = formatDateTime(meeting.date)
-                      const isExpanded = expandedCards.has(meeting.id)
-                      const shouldShowReadMore = meeting.description.length > 150
-
-                      return (
-                        <Card
-                          key={meeting.id || index}
-                          className="hover:shadow-lg transition-shadow duration-200 relative"
-                        >
-                          {/* Work Order Number - Top Right Corner */}
-                          <div className="absolute top-4 right-4 z-10">
-                            <Badge variant="secondary" className="bg-gray-100 text-gray-700 font-mono text-xs">
-                              WO-{String(meeting.id).padStart(4, "0")}
-                            </Badge>
-                          </div>
-
-                          <CardHeader className="pb-3 pr-20">
-                            <CardTitle className="text-lg font-semibold text-gray-900 line-clamp-2 pr-2">
-                              {meeting.topic}
-                            </CardTitle>
-                            <div className="flex items-center space-x-2 mt-2">
-                              <Badge className={`rounded-full capitalize ${getTypeColor(meeting.type)}`}>
-                                {meeting.type}
-                              </Badge>
-                              <Badge variant="outline" className="rounded-full">
-                                v{meeting.version}
-                              </Badge>
-                            </div>
-                          </CardHeader>
-                          <CardContent className="space-y-4">
-                            {/* Description with Read More/Less functionality */}
-                            <div className="text-gray-600 text-sm">
-                              {isExpanded || !shouldShowReadMore ? (
-                                <div className="expanded-text">{meeting.description}</div>
-                              ) : (
-                                <div className="line-clamp-3">{meeting.description}</div>
-                              )}
-                              {shouldShowReadMore && (
-                                <button
-                                  onClick={() => toggleCardExpansion(meeting.id)}
-                                  className="text-blue-600 hover:text-blue-800 text-sm font-medium mt-2 focus:outline-none"
-                                >
-                                  {isExpanded ? "Read Less" : "Read More"}
-                                </button>
-                              )}
-                            </div>
-
-                            <div className="space-y-2">
-                              {/* Date and Time - Separate Lines for Better Readability */}
-                              <div className="flex items-center text-sm text-gray-700">
-                                <Calendar className="h-4 w-4 mr-2 text-gray-500 flex-shrink-0" />
-                                <span className="font-medium">{date}</span>
-                              </div>
-                              {time && (
-                                <div className="flex items-center text-sm text-gray-700">
-                                  <Clock className="h-4 w-4 mr-2 text-gray-500 flex-shrink-0" />
-                                  <span className="font-medium">{time}</span>
-                                </div>
-                              )}
-
-                              <div className="flex items-start text-sm text-gray-700">
-                                <Users className="h-4 w-4 mr-2 text-gray-500 flex-shrink-0 mt-0.5" />
-                                <div className="min-w-0 flex-1">
-                                  <span className="font-medium">Creator:</span>
-                                  <span className="ml-1 break-words">{meeting.creator}</span>
-                                </div>
-                              </div>
-
-                              <div className="flex items-start text-sm text-gray-700">
-                                <Users className="h-4 w-4 mr-2 text-gray-500 flex-shrink-0 mt-0.5" />
-                                <div className="min-w-0 flex-1">
-                                  <span className="font-medium">Members:</span>
-                                  <span className="ml-1 break-words">{meeting.member}</span>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Action Buttons */}
-                            <div className="flex space-x-2 pt-2 border-t border-gray-100">
-                              <Button
-                                onClick={() => handleEditMeeting(meeting.id)}
-                                variant="outline"
-                                size="sm"
-                                className="flex-1 text-blue-600 border-blue-200 hover:bg-blue-50"
-                              >
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit
-                              </Button>
-                              <Button
-                                onClick={() => handleDeleteMeeting(meeting.id)}
-                                variant="outline"
-                                size="sm"
-                                className="flex-1 text-red-600 border-red-200 hover:bg-red-50"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )
-                    })}
-                </div>
-              )}
+              </Link>
             </CardContent>
           </Card>
-        </main>
-      </div>
-    </>
-  )
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {meetings.map((meeting) => {
+              const startDateTime = formatDateTime(meeting.date);
+              const endDateTime = formatDateTime(meeting.end_date);
+              const duration = getMeetingDuration(
+                meeting.date,
+                meeting.end_date,
+              );
+
+              return (
+                <Card
+                  key={meeting.id}
+                  className="rounded-xl shadow-lg hover:shadow-xl transition-shadow"
+                  style={{ backgroundColor: "#F5F5F5" }}
+                >
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start mb-2">
+                      <CardTitle className="text-lg font-bold text-gray-900 leading-tight">
+                        {meeting.topic}
+                      </CardTitle>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          meeting.type.toLowerCase() === "online"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-blue-100 text-blue-800"
+                        }`}
+                      >
+                        {meeting.type}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 line-clamp-2">
+                      {meeting.description}
+                    </p>
+                  </CardHeader>
+
+                  <CardContent className="pt-0 space-y-3">
+                    {/* Date and Time */}
+                    <div className="flex items-center space-x-2 text-sm text-gray-700">
+                      <Calendar className="h-4 w-4 text-blue-600" />
+                      <span className="font-medium">{startDateTime.date}</span>
+                    </div>
+
+                    <div className="flex items-center space-x-2 text-sm text-gray-700">
+                      <Clock className="h-4 w-4 text-blue-600" />
+                      <span>
+                        {startDateTime.time} - {endDateTime.time}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        ({duration})
+                      </span>
+                    </div>
+
+                    {/* Meeting Room */}
+                    <div className="flex items-center space-x-2 text-sm text-gray-700">
+                      <MapPin className="h-4 w-4 text-blue-600" />
+                      <span>Room {meeting["meeting-room"]}</span>
+                    </div>
+
+                    {/* Creator and Members */}
+                    <div className="border-t pt-3">
+                      <div className="flex items-center space-x-2 text-sm text-gray-700 mb-1">
+                        <Users className="h-4 w-4 text-blue-600" />
+                        <span className="font-medium">Created by:</span>
+                        <span>{meeting.creator}</span>
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        <span className="font-medium">Members:</span>{" "}
+                        {meeting.member}
+                      </div>
+                    </div>
+
+                    {/* Meeting ID and Version */}
+                    <div className="flex justify-between items-center text-xs text-gray-500 border-t pt-2">
+                      <span>ID: {meeting.id}</span>
+                      <span>v{meeting.version}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </main>
+    </div>
+  );
 }
