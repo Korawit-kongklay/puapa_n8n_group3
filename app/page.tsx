@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Calendar, Users, Clock } from "lucide-react";
+import { Calendar, Users, Clock, X } from "lucide-react";
 import Link from "next/link";
 
 interface MeetingData {
