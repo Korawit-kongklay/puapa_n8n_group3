@@ -169,6 +169,22 @@ export default function HomePage() {
     if (!formData.version || formData.version <= 0) {
       newErrors.version = "Version must be a positive number";
     }
+    if (!formData["meeting-room"] || formData["meeting-room"] <= 0) {
+      newErrors["meeting-room"] = "Meeting room must be a positive number";
+    }
+    if (!formData.end_time) {
+      newErrors.end_time = "End time is required";
+    } else {
+      // Validate end time format (HH:mm)
+      const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+      if (!timeRegex.test(formData.end_time)) {
+        newErrors.end_time = "End time must be in HH:mm format";
+      }
+      // Validate that end time is after start time
+      if (formData.time && formData.end_time <= formData.time) {
+        newErrors.end_time = "End time must be after start time";
+      }
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
