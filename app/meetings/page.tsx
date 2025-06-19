@@ -301,7 +301,7 @@ export default function ViewMeetingsPage() {
                     {/* Meeting Room */}
                     <div className="flex items-center space-x-2 text-sm text-gray-700">
                       <MapPin className="h-4 w-4 text-blue-600" />
-                      <span>Room {meeting["meeting-room"]}</span>
+                      <span>Room {meeting.meeting_room}</span>
                     </div>
 
                     {/* Creator and Members */}
