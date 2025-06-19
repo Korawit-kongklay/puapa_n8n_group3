@@ -194,6 +194,8 @@ export default function HomePage() {
     text: string;
   } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [members, setMembers] = useState<Member[]>([]);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(true);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
