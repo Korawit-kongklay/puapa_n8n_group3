@@ -1,46 +1,55 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Calendar, Users, Clock } from "lucide-react"
-import Link from "next/link"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Calendar, Users, Clock } from "lucide-react";
+import Link from "next/link";
 
 interface MeetingData {
-  id: number
-  topic: string
-  description: string
-  type: string
-  date: string
-  time: string
-  creator: string
-  member: string
-  version: number
+  id: number;
+  topic: string;
+  description: string;
+  type: string;
+  date: string;
+  time: string;
+  creator: string;
+  member: string;
+  version: number;
+  "meeting-room": number;
+  end_date: string;
+  end_time: string;
 }
 
 async function submitMeeting(data: MeetingData) {
   // Combine date and time into proper ISO 8601 format
-  let isoDateTime = ""
+  let isoDateTime = "";
   if (data.date && data.time) {
     // Create ISO 8601 datetime: YYYY-MM-DDTHH:mm:ss.sssZ
-    isoDateTime = `${data.date}T${data.time}:00.000Z`
+    isoDateTime = `${data.date}T${data.time}:00.000Z`;
   }
 
   // Create submission data with proper ISO 8601 date
   const submissionData = {
     ...data,
     date: isoDateTime, // Replace date with full ISO 8601 format
-  }
+  };
 
   // Remove the separate time field since it's now combined with date
-  delete (submissionData as any).time
+  delete (submissionData as any).time;
 
   try {
     // Primary method: JSON with no-cors
@@ -54,19 +63,19 @@ async function submitMeeting(data: MeetingData) {
         },
         body: JSON.stringify(submissionData),
       },
-    )
+    );
 
     // With no-cors, we can't read the response, so assume success if no error thrown
-    return "Meeting submitted successfully!"
+    return "Meeting submitted successfully!";
   } catch (error) {
-    console.error("JSON submission failed, trying FormData fallback:", error)
+    console.error("JSON submission failed, trying FormData fallback:", error);
 
     // Fallback method: FormData
     try {
-      const formData = new FormData()
+      const formData = new FormData();
       Object.entries(submissionData).forEach(([key, value]) => {
-        formData.append(key, String(value))
-      })
+        formData.append(key, String(value));
+      });
 
       await fetch(
         "https://script.google.com/macros/s/AKfycbwL1gKtTn78gK-TWyaf-_0hskAPi08GhupLn7u_KplPhuNwH69VryrzVN-mzb0-gqvy/exec",
@@ -75,12 +84,14 @@ async function submitMeeting(data: MeetingData) {
           mode: "no-cors",
           body: formData,
         },
-      )
+      );
 
-      return "Meeting submitted successfully!"
+      return "Meeting submitted successfully!";
     } catch (fallbackError) {
-      console.error("FormData submission also failed:", fallbackError)
-      throw new Error("Unable to submit meeting. Please check your internet connection and try again.")
+      console.error("FormData submission also failed:", fallbackError);
+      throw new Error(
+        "Unable to submit meeting. Please check your internet connection and try again.",
+      );
     }
   }
 }
@@ -96,71 +107,74 @@ export default function HomePage() {
     creator: "",
     member: "",
     version: 1,
-  })
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
-  const [errors, setErrors] = useState<Record<string, string>>({})
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {}
+    const newErrors: Record<string, string> = {};
 
     if (!formData.id || formData.id <= 0) {
-      newErrors.id = "ID must be a positive number"
+      newErrors.id = "ID must be a positive number";
     }
     if (!formData.topic.trim()) {
-      newErrors.topic = "Topic is required"
+      newErrors.topic = "Topic is required";
     }
     if (!formData.description.trim()) {
-      newErrors.description = "Description is required"
+      newErrors.description = "Description is required";
     }
     if (!formData.type) {
-      newErrors.type = "Meeting type is required"
+      newErrors.type = "Meeting type is required";
     }
     if (!formData.date) {
-      newErrors.date = "Date is required"
+      newErrors.date = "Date is required";
     } else {
       // Validate date format
-      const dateRegex = /^\d{4}-\d{2}-\d{2}$/
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
       if (!dateRegex.test(formData.date)) {
-        newErrors.date = "Date must be in YYYY-MM-DD format"
+        newErrors.date = "Date must be in YYYY-MM-DD format";
       }
     }
     if (!formData.time) {
-      newErrors.time = "Time is required"
+      newErrors.time = "Time is required";
     } else {
       // Validate time format (HH:mm)
-      const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/
+      const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
       if (!timeRegex.test(formData.time)) {
-        newErrors.time = "Time must be in HH:mm format"
+        newErrors.time = "Time must be in HH:mm format";
       }
     }
     if (!formData.creator.trim()) {
-      newErrors.creator = "Creator is required"
+      newErrors.creator = "Creator is required";
     }
     if (!formData.member.trim()) {
-      newErrors.member = "Member is required"
+      newErrors.member = "Member is required";
     }
     if (!formData.version || formData.version <= 0) {
-      newErrors.version = "Version must be a positive number"
+      newErrors.version = "Version must be a positive number";
     }
 
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (!validateForm()) {
-      return
+      return;
     }
 
-    setIsSubmitting(true)
-    setMessage(null)
+    setIsSubmitting(true);
+    setMessage(null);
 
     try {
-      const result = await submitMeeting(formData)
-      setMessage({ type: "success", text: result })
+      const result = await submitMeeting(formData);
+      setMessage({ type: "success", text: result });
 
       // Reset form
       setFormData({
@@ -173,31 +187,37 @@ export default function HomePage() {
         creator: "",
         member: "",
         version: 1,
-      })
+      });
     } catch (error) {
-      console.error("Submission error:", error)
+      console.error("Submission error:", error);
       setMessage({
         type: "error",
-        text: error instanceof Error ? error.message : "Failed to submit meeting. Please try again.",
-      })
+        text:
+          error instanceof Error
+            ? error.message
+            : "Failed to submit meeting. Please try again.",
+      });
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
-  const handleInputChange = (field: keyof MeetingData, value: string | number) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
+  const handleInputChange = (
+    field: keyof MeetingData,
+    value: string | number,
+  ) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }))
+      setErrors((prev) => ({ ...prev, [field]: "" }));
     }
-  }
+  };
 
   // Get current date as default
   const getCurrentDate = () => {
-    const today = new Date()
-    return today.toISOString().split("T")[0]
-  }
+    const today = new Date();
+    return today.toISOString().split("T")[0];
+  };
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#ADD8E6" }}>
@@ -210,10 +230,16 @@ export default function HomePage() {
               <h1 className="text-2xl font-bold text-gray-900">Meeting.com</h1>
             </div>
             <nav className="flex space-x-4">
-              <Link href="/" className="text-blue-600 hover:text-blue-800 font-medium px-3 py-2 rounded-md">
+              <Link
+                href="/"
+                className="text-blue-600 hover:text-blue-800 font-medium px-3 py-2 rounded-md"
+              >
                 Add Meeting
               </Link>
-              <Link href="/meetings" className="text-gray-600 hover:text-gray-800 font-medium px-3 py-2 rounded-md">
+              <Link
+                href="/meetings"
+                className="text-gray-600 hover:text-gray-800 font-medium px-3 py-2 rounded-md"
+              >
                 View Meetings
               </Link>
             </nav>
@@ -223,7 +249,10 @@ export default function HomePage() {
 
       {/* Main Content */}
       <main className="max-w-2xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <Card className="rounded-xl shadow-lg" style={{ backgroundColor: "#F5F5F5" }}>
+        <Card
+          className="rounded-xl shadow-lg"
+          style={{ backgroundColor: "#F5F5F5" }}
+        >
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold text-gray-900 flex items-center justify-center space-x-2">
               <Users className="h-6 w-6" />
@@ -235,7 +264,13 @@ export default function HomePage() {
               <Alert
                 className={`rounded-lg ${message.type === "success" ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}
               >
-                <AlertDescription className={message.type === "success" ? "text-green-800" : "text-red-800"}>
+                <AlertDescription
+                  className={
+                    message.type === "success"
+                      ? "text-green-800"
+                      : "text-red-800"
+                  }
+                >
                   {message.text}
                 </AlertDescription>
               </Alert>
@@ -258,40 +293,63 @@ export default function HomePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* ID Field */}
                 <div className="space-y-2">
-                  <Label htmlFor="id" className="text-sm font-medium text-gray-700">
+                  <Label
+                    htmlFor="id"
+                    className="text-sm font-medium text-gray-700"
+                  >
                     Meeting ID *
                   </Label>
                   <Input
                     id="id"
                     type="number"
                     value={formData.id || ""}
-                    onChange={(e) => handleInputChange("id", Number.parseInt(e.target.value) || 0)}
+                    onChange={(e) =>
+                      handleInputChange(
+                        "id",
+                        Number.parseInt(e.target.value) || 0,
+                      )
+                    }
                     className={`rounded-lg ${errors.id ? "border-red-300" : "border-gray-300"}`}
                     placeholder="Enter meeting ID"
                   />
-                  {errors.id && <p className="text-sm text-red-600">{errors.id}</p>}
+                  {errors.id && (
+                    <p className="text-sm text-red-600">{errors.id}</p>
+                  )}
                 </div>
 
                 {/* Version Field */}
                 <div className="space-y-2">
-                  <Label htmlFor="version" className="text-sm font-medium text-gray-700">
+                  <Label
+                    htmlFor="version"
+                    className="text-sm font-medium text-gray-700"
+                  >
                     Version *
                   </Label>
                   <Input
                     id="version"
                     type="number"
                     value={formData.version || ""}
-                    onChange={(e) => handleInputChange("version", Number.parseInt(e.target.value) || 0)}
+                    onChange={(e) =>
+                      handleInputChange(
+                        "version",
+                        Number.parseInt(e.target.value) || 0,
+                      )
+                    }
                     className={`rounded-lg ${errors.version ? "border-red-300" : "border-gray-300"}`}
                     placeholder="Enter version number"
                   />
-                  {errors.version && <p className="text-sm text-red-600">{errors.version}</p>}
+                  {errors.version && (
+                    <p className="text-sm text-red-600">{errors.version}</p>
+                  )}
                 </div>
               </div>
 
               {/* Topic Field */}
               <div className="space-y-2">
-                <Label htmlFor="topic" className="text-sm font-medium text-gray-700">
+                <Label
+                  htmlFor="topic"
+                  className="text-sm font-medium text-gray-700"
+                >
                   Topic *
                 </Label>
                 <Input
@@ -302,31 +360,48 @@ export default function HomePage() {
                   className={`rounded-lg ${errors.topic ? "border-red-300" : "border-gray-300"}`}
                   placeholder="Enter meeting topic"
                 />
-                {errors.topic && <p className="text-sm text-red-600">{errors.topic}</p>}
+                {errors.topic && (
+                  <p className="text-sm text-red-600">{errors.topic}</p>
+                )}
               </div>
 
               {/* Description Field */}
               <div className="space-y-2">
-                <Label htmlFor="description" className="text-sm font-medium text-gray-700">
+                <Label
+                  htmlFor="description"
+                  className="text-sm font-medium text-gray-700"
+                >
                   Description *
                 </Label>
                 <Textarea
                   id="description"
                   value={formData.description}
-                  onChange={(e) => handleInputChange("description", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("description", e.target.value)
+                  }
                   className={`rounded-lg min-h-[100px] ${errors.description ? "border-red-300" : "border-gray-300"}`}
                   placeholder="Enter meeting description"
                 />
-                {errors.description && <p className="text-sm text-red-600">{errors.description}</p>}
+                {errors.description && (
+                  <p className="text-sm text-red-600">{errors.description}</p>
+                )}
               </div>
 
               {/* Type Field */}
               <div className="space-y-2">
-                <Label htmlFor="type" className="text-sm font-medium text-gray-700">
+                <Label
+                  htmlFor="type"
+                  className="text-sm font-medium text-gray-700"
+                >
                   Meeting Type *
                 </Label>
-                <Select value={formData.type} onValueChange={(value) => handleInputChange("type", value)}>
-                  <SelectTrigger className={`rounded-lg ${errors.type ? "border-red-300" : "border-gray-300"}`}>
+                <Select
+                  value={formData.type}
+                  onValueChange={(value) => handleInputChange("type", value)}
+                >
+                  <SelectTrigger
+                    className={`rounded-lg ${errors.type ? "border-red-300" : "border-gray-300"}`}
+                  >
                     <SelectValue placeholder="Select meeting type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -334,13 +409,18 @@ export default function HomePage() {
                     <SelectItem value="onsite">Onsite</SelectItem>
                   </SelectContent>
                 </Select>
-                {errors.type && <p className="text-sm text-red-600">{errors.type}</p>}
+                {errors.type && (
+                  <p className="text-sm text-red-600">{errors.type}</p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Date Field */}
                 <div className="space-y-2">
-                  <Label htmlFor="date" className="text-sm font-medium text-gray-700 flex items-center">
+                  <Label
+                    htmlFor="date"
+                    className="text-sm font-medium text-gray-700 flex items-center"
+                  >
                     <Calendar className="h-4 w-4 mr-2" />
                     Date *
                   </Label>
@@ -352,12 +432,17 @@ export default function HomePage() {
                     className={`rounded-lg ${errors.date ? "border-red-300" : "border-gray-300"}`}
                     min={getCurrentDate()}
                   />
-                  {errors.date && <p className="text-sm text-red-600">{errors.date}</p>}
+                  {errors.date && (
+                    <p className="text-sm text-red-600">{errors.date}</p>
+                  )}
                 </div>
 
                 {/* Time Field */}
                 <div className="space-y-2">
-                  <Label htmlFor="time" className="text-sm font-medium text-gray-700 flex items-center">
+                  <Label
+                    htmlFor="time"
+                    className="text-sm font-medium text-gray-700 flex items-center"
+                  >
                     <Clock className="h-4 w-4 mr-2" />
                     Time *
                   </Label>
@@ -368,41 +453,57 @@ export default function HomePage() {
                     onChange={(e) => handleInputChange("time", e.target.value)}
                     className={`rounded-lg ${errors.time ? "border-red-300" : "border-gray-300"}`}
                   />
-                  {errors.time && <p className="text-sm text-red-600">{errors.time}</p>}
+                  {errors.time && (
+                    <p className="text-sm text-red-600">{errors.time}</p>
+                  )}
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Creator Field */}
                 <div className="space-y-2">
-                  <Label htmlFor="creator" className="text-sm font-medium text-gray-700">
+                  <Label
+                    htmlFor="creator"
+                    className="text-sm font-medium text-gray-700"
+                  >
                     Creator *
                   </Label>
                   <Input
                     id="creator"
                     type="text"
                     value={formData.creator}
-                    onChange={(e) => handleInputChange("creator", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("creator", e.target.value)
+                    }
                     className={`rounded-lg ${errors.creator ? "border-red-300" : "border-gray-300"}`}
                     placeholder="Enter creator name"
                   />
-                  {errors.creator && <p className="text-sm text-red-600">{errors.creator}</p>}
+                  {errors.creator && (
+                    <p className="text-sm text-red-600">{errors.creator}</p>
+                  )}
                 </div>
 
                 {/* Member Field */}
                 <div className="space-y-2">
-                  <Label htmlFor="member" className="text-sm font-medium text-gray-700">
+                  <Label
+                    htmlFor="member"
+                    className="text-sm font-medium text-gray-700"
+                  >
                     Member *
                   </Label>
                   <Input
                     id="member"
                     type="text"
                     value={formData.member}
-                    onChange={(e) => handleInputChange("member", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("member", e.target.value)
+                    }
                     className={`rounded-lg ${errors.member ? "border-red-300" : "border-gray-300"}`}
                     placeholder="Enter member name"
                   />
-                  {errors.member && <p className="text-sm text-red-600">{errors.member}</p>}
+                  {errors.member && (
+                    <p className="text-sm text-red-600">{errors.member}</p>
+                  )}
                 </div>
               </div>
 
@@ -420,5 +521,5 @@ export default function HomePage() {
         </Card>
       </main>
     </div>
-  )
+  );
 }
