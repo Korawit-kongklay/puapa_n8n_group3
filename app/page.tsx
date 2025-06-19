@@ -87,7 +87,7 @@ async function submitMeeting(data: MeetingData) {
       });
 
       await fetch(
-        "https://script.google.com/macros/s/AKfycbwL1gKtTn78gK-TWyaf-_0hskAPi08GhupLn7u_KplPhuNwH69VryrzVN-mzb0-gqvy/exec",
+        "https://script.google.com/macros/s/AKfycbxu9ncMrvEtWSRbuoWqBA6EDjVpkrdbchRJNBZemWzh0kIdYj5Iyn1qyQ8inOF4CVke/exec",
         {
           method: "POST",
           mode: "no-cors",
