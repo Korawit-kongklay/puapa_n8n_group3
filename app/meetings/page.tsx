@@ -95,11 +95,21 @@ export default function ViewMeetingsPage() {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await fetchMeetings();
-      setMeetings(data);
+      const result = await fetchMeetingsData();
+
+      if (result.error) {
+        setError(
+          result.details ? `${result.error}: ${result.details}` : result.error,
+        );
+        setMeetings([]);
+      } else {
+        setMeetings(result.meetings);
+        setError(null);
+      }
     } catch (err) {
       console.error("Failed to fetch meetings:", err);
       setError("Failed to load meetings. Please try again.");
+      setMeetings([]);
     } finally {
       setIsLoading(false);
     }
