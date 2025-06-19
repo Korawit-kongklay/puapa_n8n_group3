@@ -717,16 +717,41 @@ export default function HomePage() {
                   >
                     Member *
                   </Label>
-                  <Input
-                    id="member"
-                    type="text"
+                  <Select
                     value={formData.member}
-                    onChange={(e) =>
-                      handleInputChange("member", e.target.value)
+                    onValueChange={(value) =>
+                      handleInputChange("member", value)
                     }
-                    className={`rounded-lg ${errors.member ? "border-red-300" : "border-gray-300"}`}
-                    placeholder="Enter member name"
-                  />
+                  >
+                    <SelectTrigger
+                      className={`rounded-lg ${errors.member ? "border-red-300" : "border-gray-300"}`}
+                    >
+                      <SelectValue
+                        placeholder={
+                          isLoadingMembers
+                            ? "Loading members..."
+                            : "Select member"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {isLoadingMembers ? (
+                        <SelectItem value="" disabled>
+                          Loading...
+                        </SelectItem>
+                      ) : members.length === 0 ? (
+                        <SelectItem value="" disabled>
+                          No members available
+                        </SelectItem>
+                      ) : (
+                        members.map((member) => (
+                          <SelectItem key={member.id} value={member.name}>
+                            {member.name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
                   {errors.member && (
                     <p className="text-sm text-red-600">{errors.member}</p>
                   )}
