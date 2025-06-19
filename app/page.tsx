@@ -209,13 +209,14 @@ export default function HomePage() {
 
   // Add member to selection
   const addMember = (memberName: string) => {
+    const trimmedName = memberName.trim();
     if (
-      memberName &&
-      memberName !== "loading" &&
-      memberName !== "no-members" &&
-      !selectedMembers.includes(memberName)
+      trimmedName &&
+      trimmedName !== "loading" &&
+      trimmedName !== "no-members" &&
+      !selectedMembers.includes(trimmedName)
     ) {
-      const newSelectedMembers = [...selectedMembers, memberName];
+      const newSelectedMembers = [...selectedMembers, trimmedName];
       setSelectedMembers(newSelectedMembers);
       updateMemberField(newSelectedMembers);
       setMemberToAdd("");
