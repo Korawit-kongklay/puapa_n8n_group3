@@ -2,7 +2,11 @@
 
 import type React from "react";
 
+<<<<<<< HEAD
 import { useState, useEffect } from "react";
+=======
+import { useState } from "react";
+>>>>>>> 30ed45d68de50c22a43d34a6d7b19a40bfb4274f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +20,11 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+<<<<<<< HEAD
 import { Calendar, Users, Clock, X } from "lucide-react";
+=======
+import { Calendar, Users, Clock } from "lucide-react";
+>>>>>>> 30ed45d68de50c22a43d34a6d7b19a40bfb4274f
 import Link from "next/link";
 
 interface MeetingData {
@@ -34,6 +42,7 @@ interface MeetingData {
   end_time: string;
 }
 
+<<<<<<< HEAD
 interface Member {
   id: number;
   name: string;
@@ -102,6 +111,8 @@ async function fetchMembers(): Promise<{
   }
 }
 
+=======
+>>>>>>> 30ed45d68de50c22a43d34a6d7b19a40bfb4274f
 async function submitMeeting(data: MeetingData) {
   // Combine date and time into proper ISO 8601 format
   let isoDateTime = "";
@@ -194,6 +205,7 @@ export default function HomePage() {
     text: string;
   } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+<<<<<<< HEAD
   const [members, setMembers] = useState<Member[]>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(true);
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
@@ -250,6 +262,8 @@ export default function HomePage() {
     setSelectedMembers(newSelectedMembers);
     updateMemberField(newSelectedMembers);
   };
+=======
+>>>>>>> 30ed45d68de50c22a43d34a6d7b19a40bfb4274f
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -345,8 +359,11 @@ export default function HomePage() {
         end_date: "",
         end_time: "",
       });
+<<<<<<< HEAD
       setSelectedMembers([]);
       setMemberToAdd("");
+=======
+>>>>>>> 30ed45d68de50c22a43d34a6d7b19a40bfb4274f
     } catch (error) {
       console.error("Submission error:", error);
       setMessage({
@@ -703,6 +720,7 @@ export default function HomePage() {
                   >
                     Creator *
                   </Label>
+<<<<<<< HEAD
                   <Select
                     value={formData.creator}
                     onValueChange={(value) =>
@@ -738,11 +756,24 @@ export default function HomePage() {
                       )}
                     </SelectContent>
                   </Select>
+=======
+                  <Input
+                    id="creator"
+                    type="text"
+                    value={formData.creator}
+                    onChange={(e) =>
+                      handleInputChange("creator", e.target.value)
+                    }
+                    className={`rounded-lg ${errors.creator ? "border-red-300" : "border-gray-300"}`}
+                    placeholder="Enter creator name"
+                  />
+>>>>>>> 30ed45d68de50c22a43d34a6d7b19a40bfb4274f
                   {errors.creator && (
                     <p className="text-sm text-red-600">{errors.creator}</p>
                   )}
                 </div>
 
+<<<<<<< HEAD
                 {/* Member Field - Multi Select */}
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-gray-700">
@@ -830,6 +861,26 @@ export default function HomePage() {
                     </div>
                   )}
 
+=======
+                {/* Member Field */}
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="member"
+                    className="text-sm font-medium text-gray-700"
+                  >
+                    Member *
+                  </Label>
+                  <Input
+                    id="member"
+                    type="text"
+                    value={formData.member}
+                    onChange={(e) =>
+                      handleInputChange("member", e.target.value)
+                    }
+                    className={`rounded-lg ${errors.member ? "border-red-300" : "border-gray-300"}`}
+                    placeholder="Enter member name"
+                  />
+>>>>>>> 30ed45d68de50c22a43d34a6d7b19a40bfb4274f
                   {errors.member && (
                     <p className="text-sm text-red-600">{errors.member}</p>
                   )}
