@@ -130,17 +130,14 @@ async function submitMeeting(data: MeetingData) {
 
   try {
     // Primary method: JSON with no-cors
-    await fetch(
-      "https://script.google.com/macros/s/AKfycbxu9ncMrvEtWSRbuoWqBA6EDjVpkrdbchRJNBZemWzh0kIdYj5Iyn1qyQ8inOF4CVke/exec",
-      {
-        method: "POST",
-        mode: "no-cors",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(submissionData),
+    await fetch("https://g3.pupa-ai.com/webhook/meeting-create", {
+      method: "POST",
+      mode: "no-cors",
+      headers: {
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify(submissionData),
+    });
 
     // With no-cors, we can't read the response, so assume success if no error thrown
     return "Meeting submitted successfully!";
