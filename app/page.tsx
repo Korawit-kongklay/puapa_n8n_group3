@@ -736,11 +736,11 @@ export default function HomePage() {
                     </SelectTrigger>
                     <SelectContent>
                       {isLoadingMembers ? (
-                        <SelectItem value="" disabled>
+                        <SelectItem value="loading" disabled>
                           Loading...
                         </SelectItem>
                       ) : members.length === 0 ? (
-                        <SelectItem value="" disabled>
+                        <SelectItem value="no-members" disabled>
                           No members available
                         </SelectItem>
                       ) : (
