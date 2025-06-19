@@ -196,6 +196,8 @@ export default function HomePage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [members, setMembers] = useState<Member[]>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(true);
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [memberToAdd, setMemberToAdd] = useState<string>("");
 
   // Load members on component mount
   useEffect(() => {
