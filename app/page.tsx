@@ -129,22 +129,46 @@ async function submitMeeting(data: MeetingData) {
   delete (submissionData as any).end_time;
 
   try {
-    await fetch("https://g3.pupa-ai.com/webhook/meeting-create", {
-      method: "POST",
-      mode : "no-cors"
-      headers: {
-        "Content-Type": "application/json",
+    // First try with normal CORS
+    const response = await fetch(
+      "https://g3.pupa-ai.com/webhook/meeting-create",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(submissionData),
       },
-      body: JSON.stringify(submissionData),
-    });
-
-    // With no-cors, we can't read the response, so assume success if no error thrown
-    return "Meeting submitted successfully!";
-  } catch (error) {
-    console.error("Submission failed:", error);
-    throw new Error(
-      "Unable to submit meeting. Please check your internet connection and try again.",
     );
+
+    // Check if request was successful
+    if (response.ok) {
+      return "Meeting submitted successfully!";
+    } else {
+      throw new Error(`Server responded with status: ${response.status}`);
+    }
+  } catch (error) {
+    console.error("Normal fetch failed, trying no-cors:", error);
+
+    // Fallback to no-cors if normal fetch fails
+    try {
+      await fetch("https://g3.pupa-ai.com/webhook/meeting-create", {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(submissionData),
+      });
+
+      // With no-cors, we can't read the response, so assume success if no error thrown
+      return "Meeting submitted successfully!";
+    } catch (fallbackError) {
+      console.error("No-cors fetch also failed:", fallbackError);
+      throw new Error(
+        "Unable to submit meeting. Please check your internet connection and try again.",
+      );
+    }
   }
 }
 
