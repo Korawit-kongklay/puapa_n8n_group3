@@ -130,9 +130,7 @@ async function submitMeeting(data: MeetingData) {
 
   try {
     // First try with normal CORS
-    const response = await fetch(
-      "https://g3.pupa-ai.com/webhook/meeting-create",
-      {
+    const response = await fetch("https://g3.pupa-ai.com/webhook/meeting-create",{
         method: "POST",
         headers: {
           "Content-Type": "application/json",
