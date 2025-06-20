@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Calendar, Users, Clock, MapPin, RefreshCw } from "lucide-react";
 import Link from "next/link";
+import { EditMeetingModal } from "@/components/ui/EditMeetingModal";
+import { DeleteMeetingButton } from "@/components/ui/DeleteMeetingButton";
 
 interface MeetingData {
   id: number;
@@ -90,6 +92,8 @@ export default function ViewMeetingsPage() {
   const [meetings, setMeetings] = useState<MeetingData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingMeeting, setEditingMeeting] = useState<MeetingData | null>(null);
 
   const loadMeetings = async () => {
     try {
@@ -153,6 +157,23 @@ export default function ViewMeetingsPage() {
     } catch (error) {
       return "Unknown";
     }
+  };
+
+  const handleEdit = (meeting: MeetingData) => {
+    setEditingMeeting(meeting);
+    setEditModalOpen(true);
+  };
+
+  const handleSaveEdit = (updatedMeeting: MeetingData) => {
+    setMeetings((prev) =>
+      prev.map((m) => (m.id === updatedMeeting.id ? updatedMeeting : m))
+    );
+    setEditModalOpen(false);
+    setEditingMeeting(null);
+  };
+
+  const handleDelete = (id: number) => {
+    setMeetings((prev) => prev.filter((m) => m.id !== id));
   };
 
   return (
@@ -261,9 +282,16 @@ export default function ViewMeetingsPage() {
               return (
                 <Card
                   key={uniqueKey}
-                  className="rounded-xl shadow-lg hover:shadow-xl transition-shadow"
+                  className="rounded-xl shadow-lg hover:shadow-xl transition-shadow relative"
                   style={{ backgroundColor: "#F5F5F5" }}
                 >
+                  {/* Edit & Delete Buttons */}
+                  <div className="absolute top-3 right-3 flex space-x-2">
+                    <Button size="sm" variant="outline" onClick={() => handleEdit(meeting)}>
+                      Edit
+                    </Button>
+                    <DeleteMeetingButton meetingId={meeting.id} meetingName={meeting.topic} onDelete={handleDelete} />
+                  </div>
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-start mb-2">
                       <CardTitle className="text-lg font-bold text-gray-900 leading-tight">
@@ -332,6 +360,16 @@ export default function ViewMeetingsPage() {
           </div>
         )}
       </main>
+
+      {/* Edit Modal */}
+      {editingMeeting && (
+        <EditMeetingModal
+          meeting={editingMeeting}
+          isOpen={editModalOpen}
+          onClose={() => { setEditModalOpen(false); setEditingMeeting(null); }}
+          onSave={handleSaveEdit}
+        />
+      )}
     </div>
   );
 }
