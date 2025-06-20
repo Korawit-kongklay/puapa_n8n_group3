@@ -132,7 +132,6 @@ async function submitMeeting(data: MeetingData) {
     // Primary method: JSON with no-cors
     await fetch("https://g3.pupa-ai.com/webhook/meeting-create", {
       method: "POST",
-      mode: "no-cors",
       headers: {
         "Content-Type": "application/json",
       },
@@ -153,7 +152,6 @@ async function submitMeeting(data: MeetingData) {
 
       await fetch("https://g3.pupa-ai.com/webhook/meeting-create", {
         method: "POST",
-        mode: "no-cors",
         body: formData,
       });
 
