@@ -128,44 +128,105 @@ async function submitMeeting(data: MeetingData) {
   delete (submissionData as any).time;
   delete (submissionData as any).end_time;
 
+  console.log("Submitting meeting data:", submissionData);
+
+  const webhookUrl = "https://g3.pupa-ai.com/webhook/meeting-create";
+
   try {
+    // Add timeout and better error handling
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
     // First try with normal CORS
-    const response = await fetch("https://g3.pupa-ai.com/webhook/meeting-create",{
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(submissionData),
+    console.log("Attempting normal fetch to:", webhookUrl);
+    const response = await fetch(webhookUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
       },
+      body: JSON.stringify(submissionData),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    console.log("Response status:", response.status);
+    console.log(
+      "Response headers:",
+      Object.fromEntries(response.headers.entries()),
     );
 
     // Check if request was successful
     if (response.ok) {
-      return "Meeting submitted successfully!";
+      try {
+        const responseData = await response.text();
+        console.log("Response data:", responseData);
+        return "Meeting submitted successfully!";
+      } catch (parseError) {
+        console.log("Could not parse response, but request was successful");
+        return "Meeting submitted successfully!";
+      }
     } else {
-      throw new Error(`Server responded with status: ${response.status}`);
+      throw new Error(
+        `Server responded with status: ${response.status} ${response.statusText}`,
+      );
     }
   } catch (error) {
-    console.error("Normal fetch failed, trying no-cors:", error);
+    console.error("Normal fetch failed:", error);
+    console.log("Error type:", error.name);
+    console.log("Error message:", error.message);
+
+    // Check if it's a timeout error
+    if (error.name === "AbortError") {
+      throw new Error(
+        "Request timed out. The server might be experiencing high load. Please try again.",
+      );
+    }
 
     // Fallback to no-cors if normal fetch fails
     try {
-      await fetch("https://g3.pupa-ai.com/webhook/meeting-create", {
+      console.log("Attempting no-cors fallback to:", webhookUrl);
+      const fallbackController = new AbortController();
+      const fallbackTimeoutId = setTimeout(
+        () => fallbackController.abort(),
+        30000,
+      );
+
+      await fetch(webhookUrl, {
         method: "POST",
         mode: "no-cors",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(submissionData),
+        signal: fallbackController.signal,
       });
 
+      clearTimeout(fallbackTimeoutId);
+      console.log("No-cors request completed successfully");
+
       // With no-cors, we can't read the response, so assume success if no error thrown
-      return "Meeting submitted successfully!";
+      return "Meeting submitted successfully (no-cors mode)!";
     } catch (fallbackError) {
       console.error("No-cors fetch also failed:", fallbackError);
-      throw new Error(
-        "Unable to submit meeting. Please check your internet connection and try again.",
-      );
+      console.log("Fallback error type:", fallbackError.name);
+      console.log("Fallback error message:", fallbackError.message);
+
+      if (fallbackError.name === "AbortError") {
+        throw new Error(
+          "Request timed out. Please check your internet connection and try again.",
+        );
+      }
+
+      // Provide more specific error message based on error type
+      if (fallbackError.message.includes("Failed to fetch")) {
+        throw new Error(
+          `Unable to reach the server at ${webhookUrl}. Please check:\n- Your internet connection\n- If the webhook server is running\n- If there are any firewall restrictions`,
+        );
+      }
+
+      throw new Error(`Unable to submit meeting: ${fallbackError.message}`);
     }
   }
 }
