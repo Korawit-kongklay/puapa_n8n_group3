@@ -20,14 +20,13 @@ import { Calendar, Users, Clock, X } from "lucide-react";
 import Link from "next/link";
 
 interface MeetingData {
-  id: number;
   topic: string;
   description: string;
   type: string;
   date: string;
   time: string;
   creator: string;
-  member: string;
+  member: string[];
   version: number;
   meeting_room: number;
   end_date: string;
@@ -108,56 +107,46 @@ async function submitMeeting(data: MeetingData) {
   let isoEndDateTime = "";
 
   if (data.date && data.time) {
-    // Create ISO 8601 datetime: YYYY-MM-DDTHH:mm:ss.sssZ
     isoDateTime = `${data.date}T${data.time}:00.000Z`;
   }
 
   if (data.date && data.end_time) {
-    // Create end date ISO 8601 datetime
     isoEndDateTime = `${data.date}T${data.end_time}:00.000Z`;
   }
 
-  // Create submission data with proper ISO 8601 dates
+  // สร้าง body ให้ตรงกับตัวอย่าง
   const submissionData = {
-    ...data,
-    date: isoDateTime, // Replace date with full ISO 8601 format
-    end_date: isoEndDateTime, // Add end_date in ISO 8601 format
+    topic: data.topic,
+    description: data.description,
+    type: data.type,
+    date: isoDateTime,
+    creator: data.creator,
+    member: data.member,
+    version: data.version,
+    meeting_room: data.meeting_room,
+    end_date: isoEndDateTime,
   };
-
-  // Remove the separate time fields since they're now combined with dates
-  delete (submissionData as any).time;
-  delete (submissionData as any).end_time;
 
   console.log("Submitting meeting data:", submissionData);
 
   const webhookUrl = "https://g3.pupa-ai.com/webhook/meeting-create";
 
   try {
-    // Add timeout and better error handling
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-    // First try with normal CORS
-    console.log("Attempting normal fetch to:", webhookUrl);
     const response = await fetch(webhookUrl, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json;charset=UTF-8",
         Accept: "application/json",
       },
-      body: submissionData,
+      body: JSON.stringify(submissionData),
       signal: controller.signal,
     });
 
     clearTimeout(timeoutId);
 
-    console.log("Response status:", response.status);
-    console.log(
-      "Response headers:",
-      Object.fromEntries(response.headers.entries()),
-    );
-
-    // Check if request was successful
     if (response.ok) {
       try {
         const responseData = await response.text();
@@ -174,11 +163,11 @@ async function submitMeeting(data: MeetingData) {
     }
   } catch (error) {
     console.error("Normal fetch failed:", error);
-    console.log("Error type:", error.name);
-    console.log("Error message:", error.message);
+    console.log("Error type:", (error as any).name);
+    console.log("Error message:", (error as any).message);
 
     // Check if it's a timeout error
-    if (error.name === "AbortError") {
+    if ((error as any).name === "AbortError") {
       throw new Error(
         "Request timed out. The server might be experiencing high load. Please try again.",
       );
@@ -197,7 +186,7 @@ async function submitMeeting(data: MeetingData) {
         method: "POST",
         mode: "no-cors",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json;charset=UTF-8",
         },
         body: JSON.stringify(submissionData),
         signal: fallbackController.signal,
@@ -206,41 +195,38 @@ async function submitMeeting(data: MeetingData) {
       clearTimeout(fallbackTimeoutId);
       console.log("No-cors request completed successfully");
 
-      // With no-cors, we can't read the response, so assume success if no error thrown
       return "Meeting submitted successfully (no-cors mode)!";
     } catch (fallbackError) {
       console.error("No-cors fetch also failed:", fallbackError);
-      console.log("Fallback error type:", fallbackError.name);
-      console.log("Fallback error message:", fallbackError.message);
+      console.log("Fallback error type:", (fallbackError as any).name);
+      console.log("Fallback error message:", (fallbackError as any).message);
 
-      if (fallbackError.name === "AbortError") {
+      if ((fallbackError as any).name === "AbortError") {
         throw new Error(
           "Request timed out. Please check your internet connection and try again.",
         );
       }
 
-      // Provide more specific error message based on error type
-      if (fallbackError.message.includes("Failed to fetch")) {
+      if ((fallbackError as any).message && (fallbackError as any).message.includes("Failed to fetch")) {
         throw new Error(
           `Unable to reach the server at ${webhookUrl}. Please check:\n- Your internet connection\n- If the webhook server is running\n- If there are any firewall restrictions`,
         );
       }
 
-      throw new Error(`Unable to submit meeting: ${fallbackError.message}`);
+      throw new Error(`Unable to submit meeting: ${(fallbackError as any).message}`);
     }
   }
 }
 
 export default function HomePage() {
   const [formData, setFormData] = useState<MeetingData>({
-    id: 0,
     topic: "",
     description: "",
     type: "",
     date: "",
     time: "",
     creator: "",
-    member: "",
+    member: [],
     version: 1,
     meeting_room: 0,
     end_date: "",
@@ -256,6 +242,8 @@ export default function HomePage() {
   const [isLoadingMembers, setIsLoadingMembers] = useState(true);
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [memberToAdd, setMemberToAdd] = useState<string>("");
+  const [checkResult, setCheckResult] = useState<string | null>(null);
+  const [isChecking, setIsChecking] = useState(false);
 
   // Load members on component mount
   useEffect(() => {
@@ -281,8 +269,7 @@ export default function HomePage() {
 
   // Update member field when selectedMembers changes
   const updateMemberField = (members: string[]) => {
-    const memberString = members.join(", ");
-    setFormData((prev) => ({ ...prev, member: memberString }));
+    setFormData((prev) => ({ ...prev, member: members }));
   };
 
   // Add member to selection
@@ -313,9 +300,6 @@ export default function HomePage() {
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.id || formData.id <= 0) {
-      newErrors.id = "ID must be a positive number";
-    }
     if (!formData.topic.trim()) {
       newErrors.topic = "Topic is required";
     }
@@ -328,7 +312,6 @@ export default function HomePage() {
     if (!formData.date) {
       newErrors.date = "Date is required";
     } else {
-      // Validate date format
       const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
       if (!dateRegex.test(formData.date)) {
         newErrors.date = "Date must be in YYYY-MM-DD format";
@@ -337,7 +320,6 @@ export default function HomePage() {
     if (!formData.time) {
       newErrors.time = "Time is required";
     } else {
-      // Validate time format (HH:mm)
       const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
       if (!timeRegex.test(formData.time)) {
         newErrors.time = "Time must be in HH:mm format";
@@ -346,7 +328,7 @@ export default function HomePage() {
     if (!formData.creator.trim()) {
       newErrors.creator = "Creator is required";
     }
-    if (!formData.member.trim()) {
+    if (!formData.member || formData.member.length === 0) {
       newErrors.member = "Member is required";
     }
     if (!formData.version || formData.version <= 0) {
@@ -360,12 +342,10 @@ export default function HomePage() {
     if (!formData.end_time) {
       newErrors.end_time = "End time is required";
     } else {
-      // Validate end time format (HH:mm)
       const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
       if (!timeRegex.test(formData.end_time)) {
         newErrors.end_time = "End time must be in HH:mm format";
       }
-      // Validate that end time is after start time
       if (formData.time && formData.end_time <= formData.time) {
         newErrors.end_time = "End time must be after start time";
       }
@@ -375,30 +355,70 @@ export default function HomePage() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const checkAvailability = async () => {
+    if (!validateForm()) return;
+    setIsChecking(true);
+    setCheckResult(null);
+    let isoDateTime = "";
+    let isoEndDateTime = "";
+    if (formData.date && formData.time) {
+      isoDateTime = `${formData.date}T${formData.time}:00.000Z`;
+    }
+    if (formData.date && formData.end_time) {
+      isoEndDateTime = `${formData.date}T${formData.end_time}:00.000Z`;
+    }
+    const checkData = {
+      topic: formData.topic,
+      description: formData.description,
+      type: formData.type,
+      date: isoDateTime,
+      creator: formData.creator,
+      member: formData.member,
+      version: formData.version,
+      meeting_room: formData.meeting_room,
+      end_date: isoEndDateTime,
+    };
+    try {
+      const res = await fetch("/api/meeting-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(checkData),
+      });
+      const data = await res.json();
+      setCheckResult(data.output || JSON.stringify(data));
+    } catch (e) {
+      setCheckResult("เกิดข้อผิดพลาดในการตรวจสอบ");
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!validateForm()) {
       return;
     }
-
+    if (!checkResult) {
+      setMessage({ type: "error", text: "กรุณาตรวจสอบห้องและสมาชิกว่างก่อนส่งข้อมูล" });
+      return;
+    }
+    if (checkResult.includes("ไม่ว่าง")) {
+      setMessage({ type: "error", text: checkResult });
+      return;
+    }
     setIsSubmitting(true);
     setMessage(null);
-
     try {
       const result = await submitMeeting(formData);
       setMessage({ type: "success", text: result });
-
-      // Reset form
       setFormData({
-        id: 0,
         topic: "",
         description: "",
         type: "",
         date: "",
         time: "",
         creator: "",
-        member: "",
+        member: [],
         version: 1,
         meeting_room: 0,
         end_date: "",
@@ -406,8 +426,8 @@ export default function HomePage() {
       });
       setSelectedMembers([]);
       setMemberToAdd("");
+      setCheckResult(null);
     } catch (error) {
-      console.error("Submission error:", error);
       setMessage({
         type: "error",
         text:
@@ -424,7 +444,13 @@ export default function HomePage() {
     field: keyof MeetingData,
     value: string | number,
   ) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    if (field === "member") {
+      if (Array.isArray(value)) {
+        setFormData((prev) => ({ ...prev, member: value }));
+      }
+    } else {
+      setFormData((prev) => ({ ...prev, [field]: value }));
+    }
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }));
@@ -522,32 +548,6 @@ export default function HomePage() {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* ID Field */}
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="id"
-                    className="text-sm font-medium text-gray-700"
-                  >
-                    Meeting ID *
-                  </Label>
-                  <Input
-                    id="id"
-                    type="number"
-                    value={formData.id || ""}
-                    onChange={(e) =>
-                      handleInputChange(
-                        "id",
-                        Number.parseInt(e.target.value) || 0,
-                      )
-                    }
-                    className={`rounded-lg ${errors.id ? "border-red-300" : "border-gray-300"}`}
-                    placeholder="Enter meeting ID"
-                  />
-                  {errors.id && (
-                    <p className="text-sm text-red-600">{errors.id}</p>
-                  )}
-                </div>
-
                 {/* Version Field */}
                 <div className="space-y-2">
                   <Label
@@ -919,7 +919,22 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Submit Button */}
+              <Button
+                type="button"
+                onClick={checkAvailability}
+                disabled={isChecking || isSubmitting}
+                className="w-full rounded-lg font-medium py-3 text-black hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: "#FFD700" }}
+              >
+                {isChecking ? "กำลังตรวจสอบ..." : "ตรวจสอบห้องและสมาชิกว่าง"}
+              </Button>
+              {checkResult && (
+                <Alert className="rounded-lg bg-blue-50 border-blue-200 mt-2">
+                  <AlertDescription className="text-blue-800 whitespace-pre-wrap">
+                    {checkResult}
+                  </AlertDescription>
+                </Alert>
+              )}
               <Button
                 type="submit"
                 disabled={isSubmitting}
