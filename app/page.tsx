@@ -131,7 +131,6 @@ async function submitMeeting(data: MeetingData) {
   try {
     await fetch("https://g3.pupa-ai.com/webhook/meeting-create", {
       method: "POST",
-      mode: "no-cors",
       headers: {
         "Content-Type": "application/json",
       },
