@@ -129,9 +129,9 @@ async function submitMeeting(data: MeetingData) {
   delete (submissionData as any).end_time;
 
   try {
-    // Primary method: JSON with no-cors
     await fetch("https://g3.pupa-ai.com/webhook/meeting-create", {
       method: "POST",
+      mode: "no-cors",
       headers: {
         "Content-Type": "application/json",
       },
@@ -141,27 +141,10 @@ async function submitMeeting(data: MeetingData) {
     // With no-cors, we can't read the response, so assume success if no error thrown
     return "Meeting submitted successfully!";
   } catch (error) {
-    console.error("JSON submission failed, trying FormData fallback:", error);
-
-    // Fallback method: FormData
-    try {
-      const formData = new FormData();
-      Object.entries(submissionData).forEach(([key, value]) => {
-        formData.append(key, String(value));
-      });
-
-      await fetch("https://g3.pupa-ai.com/webhook/meeting-create", {
-        method: "POST",
-        body: formData,
-      });
-
-      return "Meeting submitted successfully!";
-    } catch (fallbackError) {
-      console.error("FormData submission also failed:", fallbackError);
-      throw new Error(
-        "Unable to submit meeting. Please check your internet connection and try again.",
-      );
-    }
+    console.error("Submission failed:", error);
+    throw new Error(
+      "Unable to submit meeting. Please check your internet connection and try again.",
+    );
   }
 }
 
