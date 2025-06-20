@@ -145,7 +145,7 @@ async function submitMeeting(data: MeetingData) {
         "Content-Type": "application/json",
         Accept: "application/json",
       },
-      body: JSON.stringify(submissionData),
+      body: submissionData,
       signal: controller.signal,
     });
 
