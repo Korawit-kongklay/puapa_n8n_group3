@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Calendar, Users, Clock } from "lucide-react";
+import { Calendar, Users, Clock, X } from "lucide-react";
 import Link from "next/link";
 
 interface MeetingData {
@@ -32,6 +32,74 @@ interface MeetingData {
   meeting_room: number;
   end_date: string;
   end_time: string;
+}
+
+interface Member {
+  id: number;
+  name: string;
+}
+
+interface MembersApiResponse {
+  members?: Member[];
+  error?: string;
+  details?: string;
+}
+
+async function fetchMembers(): Promise<{
+  members: Member[];
+  error?: string;
+  details?: string;
+}> {
+  try {
+    const response = await fetch(
+      "https://script.google.com/macros/s/AKfycbyXeVxE-jmRQgyH8fblZU7EocCy2eOT_Qnq6j22YiFoT45jVXG_RXtGPHtsRtroLcPs/exec?sheet=Members",
+      {
+        method: "GET",
+        cache: "no-store",
+      },
+    );
+
+    const data: MembersApiResponse = await response.json();
+
+    // Handle API error responses
+    if (!response.ok) {
+      return {
+        members: [],
+        error: data.error || `API Error: ${response.status}`,
+        details: data.details,
+      };
+    }
+
+    // Handle error response from API
+    if (data.error) {
+      return {
+        members: [],
+        error: data.error,
+        details: data.details,
+      };
+    }
+
+    if (!data.members || !Array.isArray(data.members)) {
+      return {
+        members: [],
+        error: "Invalid response format",
+        details: "Expected 'members' array in API response",
+      };
+    }
+
+    return {
+      members: data.members,
+    };
+  } catch (error) {
+    console.error("Failed to fetch members:", error);
+
+    return {
+      members: [],
+      error: "Network error",
+      details:
+        error instanceof Error ? error.message : "Unknown error occurred",
+    };
+  }
 }
 
 async function submitMeeting(data: MeetingData) {
@@ -60,47 +128,105 @@ async function submitMeeting(data: MeetingData) {
   delete (submissionData as any).time;
   delete (submissionData as any).end_time;
 
+  console.log("Submitting meeting data:", submissionData);
+
+  const webhookUrl = "https://g3.pupa-ai.com/webhook/meeting-create";
+
   try {
-    // Primary method: JSON with no-cors
-    await fetch(
-      "https://script.google.com/macros/s/AKfycbxu9ncMrvEtWSRbuoWqBA6EDjVpkrdbchRJNBZemWzh0kIdYj5Iyn1qyQ8inOF4CVke/exec",
-      {
+    // Add timeout and better error handling
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+    // First try with normal CORS
+    console.log("Attempting normal fetch to:", webhookUrl);
+    const response = await fetch(webhookUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: submissionData,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    console.log("Response status:", response.status);
+    console.log(
+      "Response headers:",
+      Object.fromEntries(response.headers.entries()),
+    );
+
+    // Check if request was successful
+    if (response.ok) {
+      try {
+        const responseData = await response.text();
+        console.log("Response data:", responseData);
+        return "Meeting submitted successfully!";
+      } catch (parseError) {
+        console.log("Could not parse response, but request was successful");
+        return "Meeting submitted successfully!";
+      }
+    } else {
+      throw new Error(
+        `Server responded with status: ${response.status} ${response.statusText}`,
+      );
+    }
+  } catch (error) {
+    console.error("Normal fetch failed:", error);
+    console.log("Error type:", error.name);
+    console.log("Error message:", error.message);
+
+    // Check if it's a timeout error
+    if (error.name === "AbortError") {
+      throw new Error(
+        "Request timed out. The server might be experiencing high load. Please try again.",
+      );
+    }
+
+    // Fallback to no-cors if normal fetch fails
+    try {
+      console.log("Attempting no-cors fallback to:", webhookUrl);
+      const fallbackController = new AbortController();
+      const fallbackTimeoutId = setTimeout(
+        () => fallbackController.abort(),
+        30000,
+      );
+
+      await fetch(webhookUrl, {
         method: "POST",
         mode: "no-cors",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(submissionData),
-      },
-    );
-
-    // With no-cors, we can't read the response, so assume success if no error thrown
-    return "Meeting submitted successfully!";
-  } catch (error) {
-    console.error("JSON submission failed, trying FormData fallback:", error);
-
-    // Fallback method: FormData
-    try {
-      const formData = new FormData();
-      Object.entries(submissionData).forEach(([key, value]) => {
-        formData.append(key, String(value));
+        signal: fallbackController.signal,
       });
 
-      await fetch(
-        "https://script.google.com/macros/s/AKfycbxu9ncMrvEtWSRbuoWqBA6EDjVpkrdbchRJNBZemWzh0kIdYj5Iyn1qyQ8inOF4CVke/exec",
-        {
-          method: "POST",
-          mode: "no-cors",
-          body: formData,
-        },
-      );
+      clearTimeout(fallbackTimeoutId);
+      console.log("No-cors request completed successfully");
 
-      return "Meeting submitted successfully!";
+      // With no-cors, we can't read the response, so assume success if no error thrown
+      return "Meeting submitted successfully (no-cors mode)!";
     } catch (fallbackError) {
-      console.error("FormData submission also failed:", fallbackError);
-      throw new Error(
-        "Unable to submit meeting. Please check your internet connection and try again.",
-      );
+      console.error("No-cors fetch also failed:", fallbackError);
+      console.log("Fallback error type:", fallbackError.name);
+      console.log("Fallback error message:", fallbackError.message);
+
+      if (fallbackError.name === "AbortError") {
+        throw new Error(
+          "Request timed out. Please check your internet connection and try again.",
+        );
+      }
+
+      // Provide more specific error message based on error type
+      if (fallbackError.message.includes("Failed to fetch")) {
+        throw new Error(
+          `Unable to reach the server at ${webhookUrl}. Please check:\n- Your internet connection\n- If the webhook server is running\n- If there are any firewall restrictions`,
+        );
+      }
+
+      throw new Error(`Unable to submit meeting: ${fallbackError.message}`);
     }
   }
 }
@@ -126,6 +252,63 @@ export default function HomePage() {
     text: string;
   } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [members, setMembers] = useState<Member[]>([]);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(true);
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [memberToAdd, setMemberToAdd] = useState<string>("");
+
+  // Load members on component mount
+  useEffect(() => {
+    const loadMembers = async () => {
+      try {
+        setIsLoadingMembers(true);
+        const result = await fetchMembers();
+
+        if (result.error) {
+          console.error("Failed to load members:", result.error);
+        } else {
+          setMembers(result.members);
+        }
+      } catch (error) {
+        console.error("Error loading members:", error);
+      } finally {
+        setIsLoadingMembers(false);
+      }
+    };
+
+    loadMembers();
+  }, []);
+
+  // Update member field when selectedMembers changes
+  const updateMemberField = (members: string[]) => {
+    const memberString = members.join(", ");
+    setFormData((prev) => ({ ...prev, member: memberString }));
+  };
+
+  // Add member to selection
+  const addMember = (memberName: string) => {
+    const trimmedName = memberName.trim();
+    if (
+      trimmedName &&
+      trimmedName !== "loading" &&
+      trimmedName !== "no-members" &&
+      !selectedMembers.includes(trimmedName)
+    ) {
+      const newSelectedMembers = [...selectedMembers, trimmedName];
+      setSelectedMembers(newSelectedMembers);
+      updateMemberField(newSelectedMembers);
+      setMemberToAdd("");
+    }
+  };
+
+  // Remove member from selection
+  const removeMember = (memberName: string) => {
+    const newSelectedMembers = selectedMembers.filter(
+      (name) => name !== memberName,
+    );
+    setSelectedMembers(newSelectedMembers);
+    updateMemberField(newSelectedMembers);
+  };
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -221,6 +404,8 @@ export default function HomePage() {
         end_date: "",
         end_time: "",
       });
+      setSelectedMembers([]);
+      setMemberToAdd("");
     } catch (error) {
       console.error("Submission error:", error);
       setMessage({
@@ -577,39 +762,157 @@ export default function HomePage() {
                   >
                     Creator *
                   </Label>
-                  <Input
-                    id="creator"
-                    type="text"
+                  <Select
                     value={formData.creator}
-                    onChange={(e) =>
-                      handleInputChange("creator", e.target.value)
+                    onValueChange={(value) =>
+                      handleInputChange("creator", value)
                     }
-                    className={`rounded-lg ${errors.creator ? "border-red-300" : "border-gray-300"}`}
-                    placeholder="Enter creator name"
-                  />
+                  >
+                    <SelectTrigger
+                      className={`rounded-lg ${errors.creator ? "border-red-300" : "border-gray-300"}`}
+                    >
+                      <SelectValue
+                        placeholder={
+                          isLoadingMembers
+                            ? "Loading members..."
+                            : "Select creator"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {isLoadingMembers ? (
+                        <SelectItem value="loading" disabled>
+                          Loading...
+                        </SelectItem>
+                      ) : members.length === 0 ? (
+                        <SelectItem value="no-members" disabled>
+                          No members available
+                        </SelectItem>
+                      ) : (
+                        members.map((member) => (
+                          <SelectItem key={member.id} value={member.name}>
+                            {member.name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
                   {errors.creator && (
                     <p className="text-sm text-red-600">{errors.creator}</p>
                   )}
                 </div>
 
-                {/* Member Field */}
+                {/* Member Field - Multi Select */}
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="member"
-                    className="text-sm font-medium text-gray-700"
-                  >
-                    Member *
+                  <Label className="text-sm font-medium text-gray-700">
+                    Members *
                   </Label>
-                  <Input
-                    id="member"
-                    type="text"
-                    value={formData.member}
-                    onChange={(e) =>
-                      handleInputChange("member", e.target.value)
-                    }
-                    className={`rounded-lg ${errors.member ? "border-red-300" : "border-gray-300"}`}
-                    placeholder="Enter member name"
-                  />
+
+                  {/* Show different interface based on member loading status */}
+                  {members.length > 0 ? (
+                    <>
+                      {/* Dropdown interface when members are loaded */}
+                      <div className="flex space-x-2">
+                        <Select
+                          value={memberToAdd}
+                          onValueChange={(value) => setMemberToAdd(value)}
+                        >
+                          <SelectTrigger
+                            className={`flex-1 rounded-lg ${errors.member ? "border-red-300" : "border-gray-300"}`}
+                          >
+                            <SelectValue placeholder="Select member to add" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {members
+                              .filter(
+                                (member) =>
+                                  !selectedMembers.includes(member.name),
+                              )
+                              .map((member) => (
+                                <SelectItem key={member.id} value={member.name}>
+                                  {member.name}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          type="button"
+                          onClick={() => addMember(memberToAdd)}
+                          disabled={
+                            !memberToAdd ||
+                            selectedMembers.includes(memberToAdd)
+                          }
+                          className="rounded-lg px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
+                        >
+                          Add
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* Manual input interface when members can't be loaded */}
+                      <div className="space-y-2">
+                        <div className="flex space-x-2">
+                          <Input
+                            type="text"
+                            value={memberToAdd}
+                            onChange={(e) => setMemberToAdd(e.target.value)}
+                            className={`flex-1 rounded-lg ${errors.member ? "border-red-300" : "border-gray-300"}`}
+                            placeholder="Type member name"
+                            onKeyPress={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                addMember(memberToAdd);
+                              }
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            onClick={() => addMember(memberToAdd)}
+                            disabled={
+                              !memberToAdd.trim() ||
+                              selectedMembers.includes(memberToAdd.trim())
+                            }
+                            className="rounded-lg px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
+                          >
+                            Add
+                          </Button>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {isLoadingMembers
+                            ? "Loading member list..."
+                            : "Type member names and click Add"}
+                        </p>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Selected Members Display */}
+                  {selectedMembers.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-xs font-medium text-gray-600">
+                        Selected Members:
+                      </Label>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedMembers.map((memberName) => (
+                          <div
+                            key={memberName}
+                            className="flex items-center space-x-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
+                          >
+                            <span>{memberName}</span>
+                            <button
+                              type="button"
+                              onClick={() => removeMember(memberName)}
+                              className="hover:bg-blue-200 rounded-full p-1 transition-colors"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {errors.member && (
                     <p className="text-sm text-red-600">{errors.member}</p>
                   )}
