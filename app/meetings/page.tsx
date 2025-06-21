@@ -26,6 +26,13 @@ import {
   Trash2,
   Save,
   X,
+  Plus,
+  Search,
+  Filter,
+  MoreVertical,
+  Eye,
+  Video,
+  Building,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -481,27 +488,36 @@ export default function ViewMeetingsPage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#ADD8E6" }}>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-200/50 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-2">
-              <Calendar className="h-8 w-8 text-blue-600" />
-              <h1 className="text-2xl font-bold text-gray-900">Meeting.com</h1>
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl">
+                <Calendar className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                  Meeting.com
+                </h1>
+                <p className="text-xs text-gray-500">Professional Meeting Management</p>
+              </div>
             </div>
-            <nav className="flex space-x-4">
+            <nav className="flex space-x-1">
               <Link
                 href="/"
-                className="text-gray-600 hover:text-gray-800 font-medium px-3 py-2 rounded-md"
+                className="flex items-center space-x-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 font-medium"
               >
-                Add Meeting
+                <Plus className="h-4 w-4" />
+                <span>Add Meeting</span>
               </Link>
               <Link
                 href="/meetings"
-                className="text-blue-600 hover:text-blue-800 font-medium px-3 py-2 rounded-md"
+                className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-medium shadow-lg shadow-blue-500/25"
               >
-                View Meetings
+                <Eye className="h-4 w-4" />
+                <span>View Meetings</span>
               </Link>
             </nav>
           </div>
@@ -509,34 +525,98 @@ export default function ViewMeetingsPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center mb-8">
-          <div className="flex items-center space-x-3">
-            <Users className="h-8 w-8 text-gray-700" />
-            <h2 className="text-3xl font-bold text-gray-900">All Meetings</h2>
-          </div>
-          <div className="flex space-x-3">
-            <Button
-              onClick={loadMeetings}
-              disabled={isLoading}
-              className="flex items-center space-x-2 rounded-lg font-medium px-4 py-2 text-black hover:opacity-90 transition-opacity"
-              style={{ backgroundColor: "#90EE90" }}
-            >
-              <RefreshCw
-                className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
-              />
-              <span>Refresh</span>
-            </Button>
-            <Link href="/">
-              <Button className="rounded-lg font-medium px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 transition-colors">
-                Add New Meeting
+      <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        {/* Page Header */}
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-white rounded-2xl shadow-lg shadow-gray-200/50">
+                <Users className="h-8 w-8 text-blue-600" />
+              </div>
+              <div>
+                <h2 className="text-3xl font-bold text-gray-900">All Meetings</h2>
+                <p className="text-gray-600 mt-1">
+                  Manage and organize your team meetings efficiently
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button
+                onClick={loadMeetings}
+                disabled={isLoading}
+                className="flex items-center space-x-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 rounded-xl px-4 py-2"
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+                />
+                <span>Refresh</span>
               </Button>
-            </Link>
+              <Link href="/">
+                <Button className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/25 hover:shadow-xl transition-all duration-200 rounded-xl px-6 py-2">
+                  <Plus className="h-4 w-4" />
+                  <span>Add New Meeting</span>
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white rounded-2xl p-6 shadow-lg shadow-gray-200/50 border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Meetings</p>
+                <p className="text-2xl font-bold text-gray-900">{meetings.length}</p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-xl">
+                <Calendar className="h-6 w-6 text-blue-600" />
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-2xl p-6 shadow-lg shadow-gray-200/50 border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Online Meetings</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {meetings.filter(m => m.type.toLowerCase() === 'online').length}
+                </p>
+              </div>
+              <div className="p-3 bg-green-100 rounded-xl">
+                <Video className="h-6 w-6 text-green-600" />
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-2xl p-6 shadow-lg shadow-gray-200/50 border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Onsite Meetings</p>
+                <p className="text-2xl font-bold text-purple-600">
+                  {meetings.filter(m => m.type.toLowerCase() === 'onsite').length}
+                </p>
+              </div>
+              <div className="p-3 bg-purple-100 rounded-xl">
+                <Building className="h-6 w-6 text-purple-600" />
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-2xl p-6 shadow-lg shadow-gray-200/50 border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Active Rooms</p>
+                <p className="text-2xl font-bold text-orange-600">
+                  {new Set(meetings.map(m => m.meeting_room)).size}
+                </p>
+              </div>
+              <div className="p-3 bg-orange-100 rounded-xl">
+                <MapPin className="h-6 w-6 text-orange-600" />
+              </div>
+            </div>
           </div>
         </div>
 
         {error && (
-          <Alert className="mb-6 bg-red-50 border-red-200">
+          <Alert className="mb-6 bg-red-50 border-red-200 rounded-xl">
             <AlertDescription className="text-red-800">
               {error}
             </AlertDescription>
@@ -544,32 +624,37 @@ export default function ViewMeetingsPage() {
         )}
 
         {isLoading ? (
-          <div className="flex justify-center items-center py-12">
-            <div className="flex items-center space-x-2">
-              <RefreshCw className="h-6 w-6 animate-spin text-gray-600" />
-              <span className="text-gray-600">Loading meetings...</span>
+          <div className="flex justify-center items-center py-16">
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full shadow-lg shadow-gray-200/50 mb-4">
+                <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
+              </div>
+              <p className="text-gray-600 font-medium">Loading meetings...</p>
+              <p className="text-sm text-gray-500 mt-1">Please wait while we fetch your data</p>
             </div>
           </div>
         ) : meetings.length === 0 ? (
-          <Card
-            className="rounded-xl shadow-lg"
-            style={{ backgroundColor: "#F5F5F5" }}
-          >
-            <CardContent className="py-12 text-center">
-              <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                No Meetings Found
-              </h3>
-              <p className="text-gray-600 mb-6">
-                You haven't created any meetings yet.
-              </p>
-              <Link href="/">
-                <Button className="rounded-lg font-medium px-6 py-3 text-white bg-blue-600 hover:bg-blue-700 transition-colors">
-                  Create Your First Meeting
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+          <div className="text-center py-16">
+            <div className="max-w-md mx-auto">
+              <div className="p-8 bg-white rounded-3xl shadow-lg shadow-gray-200/50 border border-gray-100">
+                <div className="w-20 h-20 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Users className="h-10 w-10 text-blue-600" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-3">
+                  No Meetings Found
+                </h3>
+                <p className="text-gray-600 mb-8 leading-relaxed">
+                  You haven't created any meetings yet. Start by creating your first meeting to get organized.
+                </p>
+                <Link href="/">
+                  <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/25 hover:shadow-xl transition-all duration-200 rounded-xl px-8 py-3">
+                    <Plus className="h-5 w-5 mr-2" />
+                    Create Your First Meeting
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {meetings.map((meeting, index) => {
@@ -586,78 +671,107 @@ export default function ViewMeetingsPage() {
               return (
                 <Card
                   key={uniqueKey}
-                  className="rounded-xl shadow-lg hover:shadow-xl transition-shadow"
-                  style={{ backgroundColor: "#F5F5F5" }}
+                  className="group bg-white rounded-2xl shadow-lg shadow-gray-200/50 hover:shadow-xl hover:shadow-gray-300/50 transition-all duration-300 border border-gray-100 overflow-hidden"
                 >
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start mb-2">
-                      <CardTitle className="text-lg font-bold text-gray-900 leading-tight">
+                  <CardHeader className="pb-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <CardTitle className="text-lg font-bold text-gray-900 leading-tight line-clamp-2">
                         {meeting.topic}
                       </CardTitle>
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          meeting.type.toLowerCase() === "online"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-blue-100 text-blue-800"
-                        }`}
-                      >
-                        {meeting.type}
-                      </span>
+                      <div className="flex items-center space-x-2">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            meeting.type.toLowerCase() === "online"
+                              ? "bg-green-100 text-green-700 border border-green-200"
+                              : "bg-blue-100 text-blue-700 border border-blue-200"
+                          }`}
+                        >
+                          {meeting.type}
+                        </span>
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                    <p className="text-sm text-gray-600 line-clamp-2">
+                    <p className="text-sm text-gray-600 line-clamp-3 leading-relaxed">
                       {meeting.description}
                     </p>
                   </CardHeader>
 
-                  <CardContent className="pt-0 space-y-3">
+                  <CardContent className="pt-0 space-y-4">
                     {/* Date and Time */}
-                    <div className="flex items-center space-x-2 text-sm text-gray-700">
-                      <Calendar className="h-4 w-4 text-blue-600" />
-                      <span className="font-medium">{startDateTime.date}</span>
-                    </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-3 text-sm">
+                        <div className="p-2 bg-blue-50 rounded-lg">
+                          <Calendar className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900">{startDateTime.date}</p>
+                          <p className="text-gray-500">Meeting Date</p>
+                        </div>
+                      </div>
 
-                    <div className="flex items-center space-x-2 text-sm text-gray-700">
-                      <Clock className="h-4 w-4 text-blue-600" />
-                      <span>
-                        {startDateTime.time} - {endDateTime.time}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        ({duration})
-                      </span>
-                    </div>
+                      <div className="flex items-center space-x-3 text-sm">
+                        <div className="p-2 bg-green-50 rounded-lg">
+                          <Clock className="h-4 w-4 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900">
+                            {startDateTime.time} - {endDateTime.time}
+                          </p>
+                          <p className="text-gray-500">Duration: {duration}</p>
+                        </div>
+                      </div>
 
-                    {/* Meeting Room */}
-                    <div className="flex items-center space-x-2 text-sm text-gray-700">
-                      <MapPin className="h-4 w-4 text-blue-600" />
-                      <span>Room {meeting.meeting_room}</span>
+                      <div className="flex items-center space-x-3 text-sm">
+                        <div className="p-2 bg-purple-50 rounded-lg">
+                          <MapPin className="h-4 w-4 text-purple-600" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900">Room {meeting.meeting_room}</p>
+                          <p className="text-gray-500">Meeting Location</p>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Creator and Members */}
-                    <div className="border-t pt-3">
-                      <div className="flex items-center space-x-2 text-sm text-gray-700 mb-1">
-                        <Users className="h-4 w-4 text-blue-600" />
-                        <span className="font-medium">Created by:</span>
-                        <span>{meeting.creator}</span>
+                    <div className="border-t border-gray-100 pt-4 space-y-3">
+                      <div className="flex items-center space-x-3 text-sm">
+                        <div className="p-2 bg-orange-50 rounded-lg">
+                          <Users className="h-4 w-4 text-orange-600" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900">{meeting.creator}</p>
+                          <p className="text-gray-500">Meeting Creator</p>
+                        </div>
                       </div>
-                      <div className="text-sm text-gray-600">
-                        <span className="font-medium">Members:</span>{" "}
-                        {meeting.member}
+                      
+                      <div className="text-sm">
+                        <p className="font-medium text-gray-700 mb-1">Participants:</p>
+                        <p className="text-gray-600 line-clamp-2 leading-relaxed">
+                          {meeting.member}
+                        </p>
                       </div>
                     </div>
 
                     {/* Meeting ID and Version */}
-                    <div className="flex justify-between items-center text-xs text-gray-500 border-t pt-2">
+                    <div className="flex justify-between items-center text-xs text-gray-400 border-t border-gray-100 pt-3">
                       <span>ID: {meeting.id}</span>
-                      <span>v{meeting.version}</span>
+                      <span className="px-2 py-1 bg-gray-100 rounded-full">v{meeting.version}</span>
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex justify-end space-x-2 border-t pt-3 mt-3">
+                    <div className="flex justify-end space-x-2 pt-3">
                       <Button
                         onClick={() => handleEditMeeting(meeting)}
                         size="sm"
-                        variant="outline"
-                        className="flex items-center space-x-1 text-blue-600 border-blue-200 hover:bg-blue-50"
+                        className="flex items-center space-x-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl px-4 py-2 transition-all duration-200"
                       >
                         <Edit3 className="h-3 w-3" />
                         <span>Edit</span>
@@ -665,8 +779,7 @@ export default function ViewMeetingsPage() {
                       <Button
                         onClick={() => handleDeleteMeeting(meeting.id)}
                         size="sm"
-                        variant="outline"
-                        className="flex items-center space-x-1 text-red-600 border-red-200 hover:bg-red-50"
+                        className="flex items-center space-x-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl px-4 py-2 transition-all duration-200"
                       >
                         <Trash2 className="h-3 w-3" />
                         <span>Delete</span>
@@ -682,26 +795,38 @@ export default function ViewMeetingsPage() {
 
       {/* Edit Modal */}
       {isEditModalOpen && editingMeeting && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-gray-200">
             {/* Modal Header */}
-            <div className="flex justify-between items-center p-6 border-b">
-              <h2 className="text-xl font-bold text-gray-900">Edit Meeting</h2>
+            <div className="flex justify-between items-center p-8 border-b border-gray-100">
+              <div className="flex items-center space-x-3">
+                <div className="p-3 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl">
+                  <Edit3 className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Edit Meeting</h2>
+                  <p className="text-gray-600">Update meeting details and participants</p>
+                </div>
+              </div>
               <Button
                 onClick={handleCloseEditModal}
                 variant="ghost"
                 size="sm"
-                className="text-gray-500 hover:text-gray-700"
+                className="h-10 w-10 p-0 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-xl"
               >
                 <X className="h-5 w-5" />
               </Button>
             </div>
 
             {/* Modal Content */}
-            <div className="p-6 space-y-4">
+            <div className="p-8 space-y-6">
               {updateMessage && (
                 <Alert
-                  className={`${updateMessage.type === "success" ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}
+                  className={`rounded-xl border-2 ${
+                    updateMessage.type === "success" 
+                      ? "bg-green-50 border-green-200" 
+                      : "bg-red-50 border-red-200"
+                  }`}
                 >
                   <AlertDescription
                     className={
@@ -715,12 +840,12 @@ export default function ViewMeetingsPage() {
                 </Alert>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Topic */}
                 <div className="md:col-span-2">
                   <Label
                     htmlFor="edit-topic"
-                    className="text-sm font-medium text-gray-700"
+                    className="text-sm font-semibold text-gray-700 mb-2 block"
                   >
                     Topic *
                   </Label>
@@ -730,16 +855,17 @@ export default function ViewMeetingsPage() {
                     onChange={(e) =>
                       handleEditInputChange("topic", e.target.value)
                     }
-                    className="mt-1"
+                    className="rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                    placeholder="Enter meeting topic"
                   />
-                  <p className="text-xs text-gray-500 mt-1">หัวข้อการประชุม</p>
+                  <p className="text-xs text-gray-500 mt-2">หัวข้อการประชุม</p>
                 </div>
 
                 {/* Description */}
                 <div className="md:col-span-2">
                   <Label
                     htmlFor="edit-description"
-                    className="text-sm font-medium text-gray-700"
+                    className="text-sm font-semibold text-gray-700 mb-2 block"
                   >
                     Description *
                   </Label>
@@ -749,16 +875,17 @@ export default function ViewMeetingsPage() {
                     onChange={(e) =>
                       handleEditInputChange("description", e.target.value)
                     }
-                    className="mt-1 min-h-[80px]"
+                    className="rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500 min-h-[100px]"
+                    placeholder="Describe the meeting details"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-500 mt-2">
                     อธิบายรายละเอียดการประชุม
                   </p>
                 </div>
 
                 {/* Meeting Type */}
                 <div>
-                  <Label className="text-sm font-medium text-gray-700">
+                  <Label className="text-sm font-semibold text-gray-700 mb-2 block">
                     Meeting Type *
                   </Label>
                   <Select
@@ -767,22 +894,22 @@ export default function ViewMeetingsPage() {
                       handleEditInputChange("type", value)
                     }
                   >
-                    <SelectTrigger className="mt-1">
+                    <SelectTrigger className="rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="rounded-xl">
                       <SelectItem value="online">Online</SelectItem>
                       <SelectItem value="onsite">Onsite</SelectItem>
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-gray-500 mt-1">ประเภทการประชุม</p>
+                  <p className="text-xs text-gray-500 mt-2">ประเภทการประชุม</p>
                 </div>
 
                 {/* Meeting Room */}
                 <div>
                   <Label
                     htmlFor="edit-room"
-                    className="text-sm font-medium text-gray-700"
+                    className="text-sm font-semibold text-gray-700 mb-2 block"
                   >
                     Meeting Room *
                   </Label>
@@ -798,9 +925,10 @@ export default function ViewMeetingsPage() {
                         Number.parseInt(e.target.value) || 0,
                       )
                     }
-                    className="mt-1"
+                    className="rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                    placeholder="1-5"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-500 mt-2">
                     ห้องประชุม 1-5 เท่านั้น
                   </p>
                 </div>
@@ -809,7 +937,7 @@ export default function ViewMeetingsPage() {
                 <div>
                   <Label
                     htmlFor="edit-date"
-                    className="text-sm font-medium text-gray-700"
+                    className="text-sm font-semibold text-gray-700 mb-2 block"
                   >
                     Date *
                   </Label>
@@ -820,16 +948,16 @@ export default function ViewMeetingsPage() {
                     onChange={(e) =>
                       handleEditInputChange("date", e.target.value)
                     }
-                    className="mt-1"
+                    className="rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                   />
-                  <p className="text-xs text-gray-500 mt-1">วันที่จัดประชุม</p>
+                  <p className="text-xs text-gray-500 mt-2">วันที่จัดประชุม</p>
                 </div>
 
                 {/* Start Time */}
                 <div>
                   <Label
                     htmlFor="edit-time"
-                    className="text-sm font-medium text-gray-700"
+                    className="text-sm font-semibold text-gray-700 mb-2 block"
                   >
                     Start Time *
                   </Label>
@@ -840,16 +968,16 @@ export default function ViewMeetingsPage() {
                     onChange={(e) =>
                       handleEditInputChange("time", e.target.value)
                     }
-                    className="mt-1"
+                    className="rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                   />
-                  <p className="text-xs text-gray-500 mt-1">เวลาเริ่มประชุม</p>
+                  <p className="text-xs text-gray-500 mt-2">เวลาเริ่มประชุม</p>
                 </div>
 
                 {/* End Time */}
                 <div>
                   <Label
                     htmlFor="edit-end-time"
-                    className="text-sm font-medium text-gray-700"
+                    className="text-sm font-semibold text-gray-700 mb-2 block"
                   >
                     End Time *
                   </Label>
@@ -860,16 +988,16 @@ export default function ViewMeetingsPage() {
                     onChange={(e) =>
                       handleEditInputChange("end_time", e.target.value)
                     }
-                    className="mt-1"
+                    className="rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-500 mt-2">
                     เวลาสิ้นสุดประชุม
                   </p>
                 </div>
 
                 {/* Members */}
                 <div className="md:col-span-2">
-                  <Label className="text-sm font-medium text-gray-700">
+                  <Label className="text-sm font-semibold text-gray-700 mb-2 block">
                     Members *
                   </Label>
 
@@ -879,10 +1007,10 @@ export default function ViewMeetingsPage() {
                       value={memberToAdd}
                       onValueChange={handleMemberSelect}
                     >
-                      <SelectTrigger className="mt-1">
+                      <SelectTrigger className="rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500">
                         <SelectValue placeholder="เลือกสมาชิก" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="rounded-xl">
                         {members
                           .filter(
                             (member) =>
@@ -922,15 +1050,15 @@ export default function ViewMeetingsPage() {
 
                   {/* Selected Members Display */}
                   {selectedMembers.length > 0 && (
-                    <div className="space-y-2 mt-3">
-                      <Label className="text-xs font-medium text-gray-600">
+                    <div className="space-y-3 mt-4">
+                      <Label className="text-xs font-semibold text-gray-600">
                         สมาชิกที่เลือก:
                       </Label>
                       <div className="flex flex-wrap gap-2">
                         {selectedMembers.map((member) => (
                           <div
                             key={member.id}
-                            className="flex items-center space-x-2 px-3 py-2 rounded-lg border border-gray-200 bg-blue-50"
+                            className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors"
                           >
                             <span className="font-medium text-gray-900">
                               {member.name}
@@ -952,22 +1080,22 @@ export default function ViewMeetingsPage() {
                     </div>
                   )}
 
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-500 mt-2">
                     เลือกสมาชิกจากรายการด้านบน
                   </p>
                 </div>
 
                 {/* Creator (Read-only) */}
                 <div className="md:col-span-2">
-                  <Label className="text-sm font-medium text-gray-700">
+                  <Label className="text-sm font-semibold text-gray-700 mb-2 block">
                     Creator
                   </Label>
                   <Input
                     value={editingMeeting.creator}
                     disabled
-                    className="mt-1 bg-gray-50 text-gray-500"
+                    className="rounded-xl bg-gray-50 text-gray-500 border-gray-200"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-500 mt-2">
                     ไม่สามารถแก้ไขผู้สร้างได้
                   </p>
                 </div>
@@ -975,18 +1103,19 @@ export default function ViewMeetingsPage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="flex justify-end space-x-3 p-6 border-t bg-gray-50 rounded-b-xl">
+            <div className="flex justify-end space-x-4 p-8 border-t border-gray-100 bg-gray-50/50 rounded-b-3xl">
               <Button
                 onClick={handleCloseEditModal}
                 variant="outline"
                 disabled={isUpdating}
+                className="rounded-xl border-gray-200 hover:bg-gray-50 px-6 py-2"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleSaveMeeting}
                 disabled={isUpdating}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/25 hover:shadow-xl transition-all duration-200 rounded-xl px-6 py-2"
               >
                 {isUpdating ? (
                   <>
