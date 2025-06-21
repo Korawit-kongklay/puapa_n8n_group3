@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { RoleBadge, RoleIcon, RoleLabel } from "@/components/ui/role-badge";
 import { 
   Calendar, 
   Users, 
@@ -50,6 +51,7 @@ interface MeetingData {
 interface Member {
   id: number;
   name: string;
+  role: string;
 }
 
 interface MembersApiResponse {
@@ -78,13 +80,20 @@ async function fetchMembers(): Promise<{
   details?: string;
 }> {
   try {
+    // Add timeout to prevent hanging requests
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
     const response = await fetch(
-      "https://script.google.com/macros/s/AKfycbyXeVxE-jmRQgyH8fblZU7EocCy2eOT_Qnq6j22YiFoT45jVXG_RXtGPHtsRtroLcPs/exec?sheet=Members",
+      "https://script.google.com/macros/s/AKfycbxW8z2Ba9FBtdxCcVa69JmtRFce7GBw3ahwYTEAs6ZqGajWdcKA0Pybjc0QS0JKfKmT/exec?sheet=Members",
       {
         method: "GET",
         cache: "no-store",
+        signal: controller.signal,
       },
     );
+
+    clearTimeout(timeoutId);
 
     const data: MembersApiResponse = await response.json();
 
@@ -120,6 +129,24 @@ async function fetchMembers(): Promise<{
   } catch (error) {
     console.error("Failed to fetch members:", error);
 
+    // Check if it's a timeout error
+    if (error instanceof Error && error.name === "AbortError") {
+      return {
+        members: [],
+        error: "Request timeout",
+        details: "The request took too long to complete. Please try again.",
+      };
+    }
+
+    // Check if it's a network error
+    if (error instanceof Error && error.message.includes("Failed to fetch")) {
+      return {
+        members: [],
+        error: "Network error",
+        details: "Unable to connect to the server. Please check your internet connection.",
+      };
+    }
+
     return {
       members: [],
       error: "Network error",
@@ -142,16 +169,20 @@ async function submitMeeting(data: MeetingData) {
     isoEndDateTime = `${data.date}T${data.end_time}:00.000Z`;
   }
 
+  // Set version to 1 and handle meeting room based on type
+  const meetingRoom = data.type === 'online' ? 0 : data.meeting_room;
+
   // สร้าง body ให้ตรงกับตัวอย่าง
   const submissionData = {
+    id: "=ROW() - 1",
     topic: data.topic,
     description: data.description,
     type: data.type,
     date: isoDateTime,
     creator: data.creator,
     member: data.member,
-    version: data.version,
-    meeting_room: data.meeting_room,
+    version: 1, // Always set to 1
+    meeting_room: meetingRoom, // 0 for online, actual room number for onsite
     end_date: isoEndDateTime,
   };
 
@@ -223,7 +254,7 @@ async function submitMeeting(data: MeetingData) {
       clearTimeout(fallbackTimeoutId);
       console.log("No-cors request completed successfully");
 
-      return "Meeting submitted successfully (no-cors mode)!";
+      return "Meeting submitted successfully!";
     } catch (fallbackError) {
       console.error("No-cors fetch also failed:", fallbackError);
       throw new Error(
@@ -242,7 +273,7 @@ export default function HomePage() {
     time: "",
     creator: "",
     member: [],
-    version: 1,
+    version: 1, // Hidden from form but kept for interface compatibility
     meeting_room: 1,
     end_date: "",
     end_time: "",
@@ -260,6 +291,7 @@ export default function HomePage() {
   const [memberToAdd, setMemberToAdd] = useState<string>("");
   const [isChecking, setIsChecking] = useState(false);
   const [checkResult, setCheckResult] = useState<string | null>(null);
+  const [isUsingFallbackMembers, setIsUsingFallbackMembers] = useState(false);
 
   useEffect(() => {
     loadMembers();
@@ -269,15 +301,41 @@ export default function HomePage() {
     try {
       setIsLoadingMembers(true);
       const result = await fetchMembers();
+      
       if (result.error) {
         console.error("Failed to load members:", result.error);
-        setMembers([]);
+        
+        // Provide fallback members data if API fails
+        const fallbackMembers: Member[] = [
+          { id: 1, name: "John Doe", role: "PM" },
+          { id: 2, name: "Jane Smith", role: "DEV" },
+          { id: 3, name: "Bob Johnson", role: "OWNER" },
+          { id: 4, name: "Alice Brown", role: "DEV" },
+          { id: 5, name: "Charlie Wilson", role: "PM" },
+        ];
+        
+        setMembers(fallbackMembers);
+        console.log("Using fallback members data due to API error:", result.error);
+        setIsUsingFallbackMembers(true);
       } else {
         setMembers(result.members);
+        setIsUsingFallbackMembers(false);
       }
     } catch (error) {
       console.error("Error loading members:", error);
-      setMembers([]);
+      
+      // Provide fallback members data on any error
+      const fallbackMembers: Member[] = [
+        { id: 1, name: "John Doe", role: "PM" },
+        { id: 2, name: "Jane Smith", role: "DEV" },
+        { id: 3, name: "Bob Johnson", role: "OWNER" },
+        { id: 4, name: "Alice Brown", role: "DEV" },
+        { id: 5, name: "Charlie Wilson", role: "PM" },
+      ];
+      
+      setMembers(fallbackMembers);
+      console.log("Using fallback members data due to unexpected error");
+      setIsUsingFallbackMembers(true);
     } finally {
       setIsLoadingMembers(false);
     }
@@ -339,11 +397,8 @@ export default function HomePage() {
       newErrors.member = "At least one member is required";
     }
 
-    if (!formData.version || formData.version < 1) {
-      newErrors.version = "Version must be at least 1";
-    }
-
-    if (!formData.meeting_room || formData.meeting_room < 1 || formData.meeting_room > 5) {
+    // Only validate meeting room for onsite meetings
+    if (formData.type === 'onsite' && (!formData.meeting_room || formData.meeting_room < 1 || formData.meeting_room > 5)) {
       newErrors.meeting_room = "Meeting room must be between 1 and 5";
     }
 
@@ -413,7 +468,7 @@ export default function HomePage() {
         time: "",
         creator: "",
         member: [],
-        version: 1,
+        version: 1, // Keep this for interface compatibility but it's not used in form
         meeting_room: 1,
         end_date: "",
         end_time: "",
@@ -547,6 +602,18 @@ export default function HomePage() {
               </Alert>
             )}
 
+            {isUsingFallbackMembers && (
+              <Alert className="rounded-xl border-2 bg-yellow-50 border-yellow-200">
+                <div className="flex items-center space-x-2">
+                  <AlertCircle className="h-5 w-5 text-yellow-600" />
+                  <AlertDescription className="text-yellow-800">
+                    <strong>Note:</strong> Using fallback members data due to API connection issues. 
+                    You can still create meetings with the available members.
+                  </AlertDescription>
+                </div>
+              </Alert>
+            )}
+
             {/* ISO 8601 Preview */}
             {formData.date && formData.time && (
               <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-6">
@@ -585,68 +652,6 @@ export default function HomePage() {
                     <Settings className="h-5 w-5 text-blue-600" />
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900">Basic Information</h3>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Version Field */}
-                  <div className="space-y-3">
-                    <Label
-                      htmlFor="version"
-                      className="text-sm font-semibold text-gray-700"
-                    >
-                      Version *
-                    </Label>
-                    <Input
-                      id="version"
-                      type="number"
-                      value={formData.version || ""}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "version",
-                          Number.parseInt(e.target.value) || 0,
-                        )
-                      }
-                      className={`rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500 ${errors.version ? "border-red-300 focus:border-red-500 focus:ring-red-500" : ""}`}
-                      placeholder="Enter version number"
-                    />
-                    {errors.version && (
-                      <p className="text-sm text-red-600 flex items-center space-x-1">
-                        <AlertCircle className="h-4 w-4" />
-                        <span>{errors.version}</span>
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Meeting Room Field */}
-                  <div className="space-y-3">
-                    <Label
-                      htmlFor="meeting_room"
-                      className="text-sm font-semibold text-gray-700"
-                    >
-                      Meeting Room * (1-5)
-                    </Label>
-                    <Input
-                      id="meeting_room"
-                      type="number"
-                      min="1"
-                      max="5"
-                      value={formData.meeting_room || ""}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "meeting_room",
-                          Number.parseInt(e.target.value) || 0,
-                        )
-                      }
-                      className={`rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500 ${errors.meeting_room ? "border-red-300 focus:border-red-500 focus:ring-red-500" : ""}`}
-                      placeholder="Enter room number (1-5)"
-                    />
-                    {errors.meeting_room && (
-                      <p className="text-sm text-red-600 flex items-center space-x-1">
-                        <AlertCircle className="h-4 w-4" />
-                        <span>{errors.meeting_room}</span>
-                      </p>
-                    )}
-                  </div>
                 </div>
 
                 {/* Topic Field */}
@@ -737,6 +742,39 @@ export default function HomePage() {
                     </p>
                   )}
                 </div>
+
+                {/* Meeting Room Field - Only show for onsite meetings */}
+                {formData.type === 'onsite' && (
+                  <div className="space-y-3">
+                    <Label
+                      htmlFor="meeting_room"
+                      className="text-sm font-semibold text-gray-700"
+                    >
+                      Meeting Room * (1-5)
+                    </Label>
+                    <Input
+                      id="meeting_room"
+                      type="number"
+                      min="1"
+                      max="5"
+                      value={formData.meeting_room || ""}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "meeting_room",
+                          Number.parseInt(e.target.value) || 0,
+                        )
+                      }
+                      className={`rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500 ${errors.meeting_room ? "border-red-300 focus:border-red-500 focus:ring-red-500" : ""}`}
+                      placeholder="Enter room number (1-5)"
+                    />
+                    {errors.meeting_room && (
+                      <p className="text-sm text-red-600 flex items-center space-x-1">
+                        <AlertCircle className="h-4 w-4" />
+                        <span>{errors.meeting_room}</span>
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Schedule Section */}
@@ -856,17 +894,46 @@ export default function HomePage() {
                       }
                     >
                       <SelectTrigger
-                        className={`rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500 ${errors.creator ? "border-red-300 focus:border-red-500 focus:ring-red-500" : ""}`}
+                        className={`w-full rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500 ${
+                          errors.creator
+                            ? "border-red-300 focus:border-red-500 focus:ring-red-500"
+                            : ""
+                        }`}
                       >
-                        <SelectValue
-                          placeholder={
-                            isLoadingMembers
-                              ? "Loading members..."
-                              : "Select creator"
-                          }
-                        />
+                        {formData.creator ? (
+                          (() => {
+                            const creatorMember = members.find(
+                              (m) => m.name === formData.creator,
+                            );
+                            return (
+                              <div className="flex items-center space-x-3 w-full min-w-0">
+                                <RoleIcon
+                                  role={creatorMember?.role}
+                                  size="md"
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium text-gray-900 truncate">
+                                    {formData.creator}
+                                  </div>
+                                  <RoleLabel
+                                    role={creatorMember?.role}
+                                    size="sm"
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })()
+                        ) : (
+                          <SelectValue
+                            placeholder={
+                              isLoadingMembers
+                                ? "Loading members..."
+                                : "Select creator"
+                            }
+                          />
+                        )}
                       </SelectTrigger>
-                      <SelectContent className="rounded-xl">
+                      <SelectContent className="rounded-xl min-w-[300px]">
                         {isLoadingMembers ? (
                           <SelectItem value="loading" disabled>
                             Loading...
@@ -876,11 +943,24 @@ export default function HomePage() {
                             No members available
                           </SelectItem>
                         ) : (
-                          members.map((member) => (
-                            <SelectItem key={member.id} value={member.name}>
-                              {member.name}
-                            </SelectItem>
-                          ))
+                          members.map((member) => {
+                            return (
+                              <SelectItem key={member.id} value={member.name}>
+                                <div className="flex items-center space-x-3 w-full min-w-[280px]">
+                                  <RoleIcon role={member.role} size="md" />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-gray-900 truncate">
+                                      {member.name}
+                                    </div>
+                                    <RoleLabel
+                                      role={member.role}
+                                      size="sm"
+                                    />
+                                  </div>
+                                </div>
+                              </SelectItem>
+                            );
+                          })
                         )}
                       </SelectContent>
                     </Select>
@@ -902,76 +982,85 @@ export default function HomePage() {
                     {members.length > 0 ? (
                       <>
                         {/* Dropdown interface when members are loaded */}
-                        <div className="flex space-x-2">
-                          <Select
-                            value={memberToAdd}
-                            onValueChange={(value) => setMemberToAdd(value)}
-                          >
-                            <SelectTrigger
-                              className={`flex-1 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500 ${errors.member ? "border-red-300 focus:border-red-500 focus:ring-red-500" : ""}`}
-                            >
-                              <SelectValue placeholder="Select member to add" />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-xl">
-                              {members
-                                .filter(
-                                  (member) =>
-                                    !selectedMembers.includes(member.name),
-                                )
-                                .map((member) => (
-                                  <SelectItem key={member.id} value={member.name}>
-                                    {member.name}
-                                  </SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
-                          <Button
-                            type="button"
-                            onClick={() => addMember(memberToAdd)}
-                            disabled={
-                              !memberToAdd ||
-                              selectedMembers.includes(memberToAdd)
+                        <Select
+                          value={memberToAdd}
+                          onValueChange={(value) => {
+                            if (value) {
+                              addMember(value);
+                              setMemberToAdd(""); // Reset select to show placeholder again
                             }
-                            className="rounded-xl px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/25 hover:shadow-xl transition-all duration-200 disabled:bg-gray-400 disabled:shadow-none"
+                          }}
+                        >
+                          <SelectTrigger
+                            className={`w-full rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500 ${
+                              errors.member
+                                ? "border-red-300 focus:border-red-500 focus:ring-red-500"
+                                : ""
+                            }`}
                           >
-                            <UserPlus className="h-4 w-4" />
-                          </Button>
-                        </div>
+                            <SelectValue placeholder="Click name to add member" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl min-w-[300px]">
+                            {members
+                              .filter(
+                                (member) =>
+                                  !selectedMembers.includes(member.name),
+                              )
+                              .map((member) => {
+                                return (
+                                  <SelectItem
+                                    key={member.id}
+                                    value={member.name}
+                                  >
+                                    <div className="flex items-center space-x-3 w-full min-w-[280px]">
+                                      <RoleIcon
+                                        role={member.role}
+                                        size="md"
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                        <div className="font-medium text-gray-900 truncate">
+                                          {member.name}
+                                        </div>
+                                        <RoleLabel
+                                          role={member.role}
+                                          size="sm"
+                                        />
+                                      </div>
+                                    </div>
+                                  </SelectItem>
+                                );
+                              })}
+                          </SelectContent>
+                        </Select>
                       </>
                     ) : (
                       <>
                         {/* Manual input interface when members can't be loaded */}
                         <div className="space-y-3">
-                          <div className="flex space-x-2">
-                            <Input
-                              type="text"
-                              value={memberToAdd}
-                              onChange={(e) => setMemberToAdd(e.target.value)}
-                              className={`flex-1 rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500 ${errors.member ? "border-red-300 focus:border-red-500 focus:ring-red-500" : ""}`}
-                              placeholder="Type member name"
-                              onKeyPress={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  addMember(memberToAdd);
+                          <Input
+                            type="text"
+                            value={memberToAdd}
+                            onChange={(e) => setMemberToAdd(e.target.value)}
+                            className={`w-full rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500 ${
+                              errors.member
+                                ? "border-red-300 focus:border-red-500 focus:ring-red-500"
+                                : ""
+                            }`}
+                            placeholder="Type member name and press Enter"
+                            onKeyPress={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                if (memberToAdd.trim()) {
+                                  addMember(memberToAdd.trim());
+                                  setMemberToAdd(""); // Clear input
                                 }
-                              }}
-                            />
-                            <Button
-                              type="button"
-                              onClick={() => addMember(memberToAdd)}
-                              disabled={
-                                !memberToAdd.trim() ||
-                                selectedMembers.includes(memberToAdd.trim())
                               }
-                              className="rounded-xl px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/25 hover:shadow-xl transition-all duration-200 disabled:bg-gray-400 disabled:shadow-none"
-                            >
-                              <UserPlus className="h-4 w-4" />
-                            </Button>
-                          </div>
+                            }}
+                          />
                           <p className="text-xs text-gray-500">
                             {isLoadingMembers
                               ? "Loading member list..."
-                              : "Type member names and click Add"}
+                              : "Could not load members. Type name and press Enter to add."}
                           </p>
                         </div>
                       </>
@@ -984,21 +1073,32 @@ export default function HomePage() {
                           Selected Members:
                         </Label>
                         <div className="flex flex-wrap gap-2">
-                          {selectedMembers.map((memberName) => (
-                            <div
-                              key={memberName}
-                              className="flex items-center space-x-2 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-800 px-4 py-2 rounded-xl border border-blue-200 hover:bg-blue-100 transition-colors"
-                            >
-                              <span className="font-medium">{memberName}</span>
-                              <button
-                                type="button"
-                                onClick={() => removeMember(memberName)}
-                                className="hover:bg-blue-200 rounded-full p-1 transition-colors"
+                          {selectedMembers.map((memberName) => {
+                            // Find the member object to get role information
+                            const member = members.find(m => m.name === memberName);
+                            
+                            return (
+                              <div
+                                key={memberName}
+                                className="flex items-center space-x-2 px-4 py-2 rounded-xl border transition-colors max-w-full"
                               >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </div>
-                          ))}
+                                <RoleIcon role={member?.role} size="md" />
+                                <div className="flex flex-col min-w-0 flex-1">
+                                  <span className="font-medium text-gray-900 truncate">{memberName}</span>
+                                  {member && (
+                                    <RoleLabel role={member.role} size="sm" />
+                                  )}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => removeMember(memberName)}
+                                  className="hover:bg-black hover:bg-opacity-10 rounded-full p-1 transition-colors flex-shrink-0"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
