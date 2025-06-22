@@ -13,6 +13,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "./card";
 import { Alert, AlertDescription } from "./alert";
 import { Calendar, Users, Clock, X } from "lucide-react";
+import { toZonedTime } from "date-fns-tz";
 
 interface Member {
   id: number;
@@ -75,14 +76,15 @@ export function EditMeetingModal({ meeting, isOpen, onClose, onSave }: EditMeeti
     let date = "";
     let time = "";
     let end_time = "";
+    const timeZone = "Asia/Bangkok";
     if (meeting.date) {
-      const d = new Date(meeting.date);
+      const d = toZonedTime(new Date(meeting.date), timeZone);
       date = d.toISOString().split("T")[0];
-      time = d.toISOString().split("T")[1]?.slice(0,5) || "";
+      time = d.toTimeString().slice(0,5);
     }
     if (meeting.end_date) {
-      const d = new Date(meeting.end_date);
-      end_time = d.toISOString().split("T")[1]?.slice(0,5) || "";
+      const d = toZonedTime(new Date(meeting.end_date), timeZone);
+      end_time = d.toTimeString().slice(0,5);
     }
     if (!date) {
       const today = new Date();

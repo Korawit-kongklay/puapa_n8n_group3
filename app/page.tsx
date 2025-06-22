@@ -33,6 +33,7 @@ import {
   Info
 } from "lucide-react";
 import Link from "next/link";
+import { toZonedTime } from "date-fns-tz";
 
 interface MeetingData {
   topic: string;
@@ -161,12 +162,19 @@ async function submitMeeting(data: MeetingData) {
   let isoDateTime = "";
   let isoEndDateTime = "";
 
+  const timeZone = "Asia/Bangkok";
+
   if (data.date && data.time) {
-    isoDateTime = `${data.date}T${data.time}:00.000Z`;
+    // สร้าง string ISO ของเวลาไทย
+    const localDateTime = `${data.date}T${data.time}:00`;
+    const zonedDate = toZonedTime(localDateTime, timeZone);
+    isoDateTime = zonedDate.toISOString();
   }
 
   if (data.date && data.end_time) {
-    isoEndDateTime = `${data.date}T${data.end_time}:00.000Z`;
+    const localEndDateTime = `${data.date}T${data.end_time}:00`;
+    const zonedEndDate = toZonedTime(localEndDateTime, timeZone);
+    isoEndDateTime = zonedEndDate.toISOString();
   }
 
   // Set version to 1 and handle meeting room based on type
@@ -412,11 +420,16 @@ export default function HomePage() {
     setCheckResult(null);
     let isoDateTime = "";
     let isoEndDateTime = "";
+    const timeZone = "Asia/Bangkok";
     if (formData.date && formData.time) {
-      isoDateTime = `${formData.date}T${formData.time}:00.000Z`;
+      const localDateTime = `${formData.date}T${formData.time}:00`;
+      const zonedDate = toZonedTime(localDateTime, timeZone);
+      isoDateTime = zonedDate.toISOString();
     }
     if (formData.date && formData.end_time) {
-      isoEndDateTime = `${formData.date}T${formData.end_time}:00.000Z`;
+      const localEndDateTime = `${formData.date}T${formData.end_time}:00`;
+      const zonedEndDate = toZonedTime(localEndDateTime, timeZone);
+      isoEndDateTime = zonedEndDate.toISOString();
     }
     const checkData = {
       topic: formData.topic,
@@ -1136,7 +1149,7 @@ export default function HomePage() {
                   ) : (
                     <div className="flex items-center space-x-2">
                       <CheckCircle className="h-4 w-4" />
-                      <span>ตรวจสอบห้องและสมาชิกว่าง (ไม่บังคับ)</span>
+                      <span>Check rooms and members (not required)</span>
                     </div>
                   )}
               </Button>
