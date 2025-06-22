@@ -257,9 +257,9 @@ async function submitMeeting(data: MeetingData) {
       return "Meeting submitted successfully!";
     } catch (fallbackError) {
       console.error("No-cors fetch also failed:", fallbackError);
-      throw new Error(
+        throw new Error(
         "Failed to submit meeting. Please check your internet connection and try again.",
-      );
+        );
     }
   }
 }
@@ -297,13 +297,13 @@ export default function HomePage() {
     loadMembers();
   }, []);
 
-  const loadMembers = async () => {
-    try {
-      setIsLoadingMembers(true);
-      const result = await fetchMembers();
-      
-      if (result.error) {
-        console.error("Failed to load members:", result.error);
+    const loadMembers = async () => {
+      try {
+        setIsLoadingMembers(true);
+        const result = await fetchMembers();
+
+        if (result.error) {
+          console.error("Failed to load members:", result.error);
         
         // Provide fallback members data if API fails
         const fallbackMembers: Member[] = [
@@ -317,12 +317,12 @@ export default function HomePage() {
         setMembers(fallbackMembers);
         console.log("Using fallback members data due to API error:", result.error);
         setIsUsingFallbackMembers(true);
-      } else {
-        setMembers(result.members);
+        } else {
+          setMembers(result.members);
         setIsUsingFallbackMembers(false);
-      }
-    } catch (error) {
-      console.error("Error loading members:", error);
+        }
+      } catch (error) {
+        console.error("Error loading members:", error);
       
       // Provide fallback members data on any error
       const fallbackMembers: Member[] = [
@@ -336,10 +336,10 @@ export default function HomePage() {
       setMembers(fallbackMembers);
       console.log("Using fallback members data due to unexpected error");
       setIsUsingFallbackMembers(true);
-    } finally {
-      setIsLoadingMembers(false);
-    }
-  };
+      } finally {
+        setIsLoadingMembers(false);
+      }
+    };
 
   const updateMemberField = (members: string[]) => {
     setFormData((prev) => ({ ...prev, member: members }));
@@ -379,7 +379,7 @@ export default function HomePage() {
 
     if (!formData.date) {
       newErrors.date = "Date is required";
-    }
+      }
 
     if (!formData.time) {
       newErrors.time = "Start time is required";
@@ -407,35 +407,37 @@ export default function HomePage() {
   };
 
   const checkAvailability = async () => {
+    if (!validateForm()) return;
     setIsChecking(true);
     setCheckResult(null);
-
+    let isoDateTime = "";
+    let isoEndDateTime = "";
+    if (formData.date && formData.time) {
+      isoDateTime = `${formData.date}T${formData.time}:00.000Z`;
+    }
+    if (formData.date && formData.end_time) {
+      isoEndDateTime = `${formData.date}T${formData.end_time}:00.000Z`;
+    }
+    const checkData = {
+      topic: formData.topic,
+      description: formData.description,
+      type: formData.type,
+      date: isoDateTime,
+      creator: formData.creator,
+      member: formData.member,
+      version: formData.version,
+      meeting_room: formData.meeting_room,
+      end_date: isoEndDateTime,
+    };
     try {
-      // Simulate API call for availability check
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      const roomAvailability = Math.random() > 0.3; // 70% chance room is available
-      const memberAvailability = Math.random() > 0.2; // 80% chance members are available
-
-      let result = "🔍 **การตรวจสอบห้องและสมาชิก**\n\n";
-
-      if (roomAvailability) {
-        result += "✅ ห้องประชุม " + formData.meeting_room + " ว่าง\n";
-      } else {
-        result += "❌ ห้องประชุม " + formData.meeting_room + " ไม่ว่าง\n";
-      }
-
-      if (memberAvailability) {
-        result += "✅ สมาชิกทั้งหมดว่าง\n";
-      } else {
-        result += "⚠️ บางสมาชิกอาจไม่ว่าง\n";
-      }
-
-      result += "\n📅 วันที่: " + formData.date;
-      result += "\n⏰ เวลา: " + formData.time + " - " + formData.end_time;
-
-      setCheckResult(result);
-    } catch (error) {
+      const res = await fetch("/api/meeting-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(checkData),
+      });
+      const data = await res.json();
+      setCheckResult(data.output || JSON.stringify(data));
+    } catch (e) {
       setCheckResult("เกิดข้อผิดพลาดในการตรวจสอบ");
     } finally {
       setIsChecking(false);
@@ -474,11 +476,16 @@ export default function HomePage() {
         end_time: "",
       });
       setSelectedMembers([]);
+      setMemberToAdd("");
+      setCheckResult(null);
       setErrors({});
     } catch (error) {
       setMessage({
         type: "error",
-        text: error instanceof Error ? error.message : "An error occurred",
+        text:
+          error instanceof Error
+            ? error.message
+            : "Failed to submit meeting. Please try again.",
       });
     } finally {
       setIsSubmitting(false);
@@ -515,7 +522,7 @@ export default function HomePage() {
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl">
                 <Calendar className="h-6 w-6 text-white" />
-              </div>
+            </div>
               <div>
                 <h1 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
                   Meeting.com
@@ -569,7 +576,7 @@ export default function HomePage() {
               </div>
               <CardTitle className="text-2xl font-bold text-gray-900">
                 Meeting Details
-              </CardTitle>
+            </CardTitle>
             </div>
             <p className="text-gray-600">Fill in the information below to create your meeting</p>
           </CardHeader>
@@ -589,15 +596,15 @@ export default function HomePage() {
                   ) : (
                     <AlertCircle className="h-5 w-5 text-red-600" />
                   )}
-                  <AlertDescription
-                    className={
-                      message.type === "success"
-                        ? "text-green-800"
-                        : "text-red-800"
-                    }
-                  >
-                    {message.text}
-                  </AlertDescription>
+                <AlertDescription
+                  className={
+                    message.type === "success"
+                      ? "text-green-800"
+                      : "text-red-800"
+                  }
+                >
+                  {message.text}
+                </AlertDescription>
                 </div>
               </Alert>
             )}
@@ -622,8 +629,8 @@ export default function HomePage() {
                     <Info className="h-4 w-4 text-green-600" />
                   </div>
                   <Label className="text-sm font-semibold text-green-800">
-                    ISO 8601 Format Preview:
-                  </Label>
+                  ISO 8601 Format Preview:
+                </Label>
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
@@ -650,76 +657,76 @@ export default function HomePage() {
                 <div className="flex items-center space-x-3 pb-4 border-b border-gray-100">
                   <div className="p-2 bg-blue-100 rounded-lg">
                     <Settings className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900">Basic Information</h3>
                 </div>
+                  <h3 className="text-lg font-semibold text-gray-900">Basic Information</h3>
+              </div>
 
-                {/* Topic Field */}
+              {/* Topic Field */}
                 <div className="space-y-3">
-                  <Label
-                    htmlFor="topic"
+                <Label
+                  htmlFor="topic"
                     className="text-sm font-semibold text-gray-700"
-                  >
-                    Topic *
-                  </Label>
-                  <Input
-                    id="topic"
-                    type="text"
-                    value={formData.topic}
-                    onChange={(e) => handleInputChange("topic", e.target.value)}
+                >
+                  Topic *
+                </Label>
+                <Input
+                  id="topic"
+                  type="text"
+                  value={formData.topic}
+                  onChange={(e) => handleInputChange("topic", e.target.value)}
                     className={`rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500 ${errors.topic ? "border-red-300 focus:border-red-500 focus:ring-red-500" : ""}`}
-                    placeholder="Enter meeting topic"
-                  />
-                  {errors.topic && (
+                  placeholder="Enter meeting topic"
+                />
+                {errors.topic && (
                     <p className="text-sm text-red-600 flex items-center space-x-1">
                       <AlertCircle className="h-4 w-4" />
                       <span>{errors.topic}</span>
                     </p>
-                  )}
-                </div>
+                )}
+              </div>
 
-                {/* Description Field */}
+              {/* Description Field */}
                 <div className="space-y-3">
-                  <Label
-                    htmlFor="description"
+                <Label
+                  htmlFor="description"
                     className="text-sm font-semibold text-gray-700"
-                  >
-                    Description *
-                  </Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) =>
-                      handleInputChange("description", e.target.value)
-                    }
+                >
+                  Description *
+                </Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) =>
+                    handleInputChange("description", e.target.value)
+                  }
                     className={`rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500 min-h-[120px] ${errors.description ? "border-red-300 focus:border-red-500 focus:ring-red-500" : ""}`}
-                    placeholder="Enter meeting description"
-                  />
-                  {errors.description && (
+                  placeholder="Enter meeting description"
+                />
+                {errors.description && (
                     <p className="text-sm text-red-600 flex items-center space-x-1">
                       <AlertCircle className="h-4 w-4" />
                       <span>{errors.description}</span>
                     </p>
-                  )}
-                </div>
+                )}
+              </div>
 
-                {/* Type Field */}
+              {/* Type Field */}
                 <div className="space-y-3">
-                  <Label
-                    htmlFor="type"
+                <Label
+                  htmlFor="type"
                     className="text-sm font-semibold text-gray-700"
-                  >
-                    Meeting Type *
-                  </Label>
-                  <Select
-                    value={formData.type}
-                    onValueChange={(value) => handleInputChange("type", value)}
-                  >
-                    <SelectTrigger
+                >
+                  Meeting Type *
+                </Label>
+                <Select
+                  value={formData.type}
+                  onValueChange={(value) => handleInputChange("type", value)}
+                >
+                  <SelectTrigger
                       className={`rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500 ${errors.type ? "border-red-300 focus:border-red-500 focus:ring-red-500" : ""}`}
-                    >
-                      <SelectValue placeholder="Select meeting type" />
-                    </SelectTrigger>
+                  >
+                    <SelectValue placeholder="Select meeting type" />
+                  </SelectTrigger>
                     <SelectContent className="rounded-xl">
                       <SelectItem value="online">
                         <div className="flex items-center space-x-2">
@@ -733,15 +740,15 @@ export default function HomePage() {
                           <span>Onsite</span>
                         </div>
                       </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {errors.type && (
+                  </SelectContent>
+                </Select>
+                {errors.type && (
                     <p className="text-sm text-red-600 flex items-center space-x-1">
                       <AlertCircle className="h-4 w-4" />
                       <span>{errors.type}</span>
                     </p>
-                  )}
-                </div>
+                )}
+              </div>
 
                 {/* Meeting Room Field - Only show for onsite meetings */}
                 {formData.type === 'onsite' && (
@@ -786,87 +793,87 @@ export default function HomePage() {
                   <h3 className="text-lg font-semibold text-gray-900">Schedule</h3>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Date Field */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Date Field */}
                   <div className="space-y-3">
-                    <Label
-                      htmlFor="date"
+                  <Label
+                    htmlFor="date"
                       className="text-sm font-semibold text-gray-700 flex items-center space-x-2"
-                    >
+                  >
                       <Calendar className="h-4 w-4 text-green-600" />
                       <span>Date *</span>
-                    </Label>
-                    <Input
-                      id="date"
-                      type="date"
-                      value={formData.date}
-                      onChange={(e) => handleInputChange("date", e.target.value)}
+                  </Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={formData.date}
+                    onChange={(e) => handleInputChange("date", e.target.value)}
                       className={`rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500 ${errors.date ? "border-red-300 focus:border-red-500 focus:ring-red-500" : ""}`}
-                      min={getCurrentDate()}
-                    />
-                    {errors.date && (
+                    min={getCurrentDate()}
+                  />
+                  {errors.date && (
                       <p className="text-sm text-red-600 flex items-center space-x-1">
                         <AlertCircle className="h-4 w-4" />
                         <span>{errors.date}</span>
                       </p>
-                    )}
-                  </div>
+                  )}
+                </div>
 
-                  {/* Time Field */}
+                {/* Time Field */}
                   <div className="space-y-3">
-                    <Label
-                      htmlFor="time"
+                  <Label
+                    htmlFor="time"
                       className="text-sm font-semibold text-gray-700 flex items-center space-x-2"
-                    >
+                  >
                       <Clock className="h-4 w-4 text-green-600" />
                       <span>Start Time *</span>
-                    </Label>
-                    <Input
-                      id="time"
-                      type="time"
-                      value={formData.time}
-                      onChange={(e) => handleInputChange("time", e.target.value)}
+                  </Label>
+                  <Input
+                    id="time"
+                    type="time"
+                    value={formData.time}
+                    onChange={(e) => handleInputChange("time", e.target.value)}
                       className={`rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500 ${errors.time ? "border-red-300 focus:border-red-500 focus:ring-red-500" : ""}`}
-                    />
-                    {errors.time && (
+                  />
+                  {errors.time && (
                       <p className="text-sm text-red-600 flex items-center space-x-1">
                         <AlertCircle className="h-4 w-4" />
                         <span>{errors.time}</span>
                       </p>
-                    )}
-                  </div>
+                  )}
                 </div>
+              </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* End Time Field */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* End Time Field */}
                   <div className="space-y-3">
-                    <Label
-                      htmlFor="end_time"
+                  <Label
+                    htmlFor="end_time"
                       className="text-sm font-semibold text-gray-700 flex items-center space-x-2"
-                    >
+                  >
                       <Clock className="h-4 w-4 text-red-600" />
                       <span>End Time *</span>
-                    </Label>
-                    <Input
-                      id="end_time"
-                      type="time"
-                      value={formData.end_time}
-                      onChange={(e) =>
-                        handleInputChange("end_time", e.target.value)
-                      }
+                  </Label>
+                  <Input
+                    id="end_time"
+                    type="time"
+                    value={formData.end_time}
+                    onChange={(e) =>
+                      handleInputChange("end_time", e.target.value)
+                    }
                       className={`rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500 ${errors.end_time ? "border-red-300 focus:border-red-500 focus:ring-red-500" : ""}`}
-                    />
-                    {errors.end_time && (
+                  />
+                  {errors.end_time && (
                       <p className="text-sm text-red-600 flex items-center space-x-1">
                         <AlertCircle className="h-4 w-4" />
                         <span>{errors.end_time}</span>
                       </p>
-                    )}
-                  </div>
-
-                  {/* Spacer for alignment */}
-                  <div></div>
+                  )}
                 </div>
+
+                {/* Spacer for alignment */}
+                <div></div>
+              </div>
               </div>
 
               {/* Participants Section */}
@@ -878,22 +885,22 @@ export default function HomePage() {
                   <h3 className="text-lg font-semibold text-gray-900">Participants</h3>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Creator Field */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Creator Field */}
                   <div className="space-y-3">
-                    <Label
-                      htmlFor="creator"
+                  <Label
+                    htmlFor="creator"
                       className="text-sm font-semibold text-gray-700"
-                    >
-                      Creator *
-                    </Label>
-                    <Select
-                      value={formData.creator}
-                      onValueChange={(value) =>
-                        handleInputChange("creator", value)
-                      }
-                    >
-                      <SelectTrigger
+                  >
+                    Creator *
+                  </Label>
+                  <Select
+                    value={formData.creator}
+                    onValueChange={(value) =>
+                      handleInputChange("creator", value)
+                    }
+                  >
+                    <SelectTrigger
                         className={`w-full rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500 ${
                           errors.creator
                             ? "border-red-300 focus:border-red-500 focus:ring-red-500"
@@ -924,33 +931,33 @@ export default function HomePage() {
                             );
                           })()
                         ) : (
-                          <SelectValue
-                            placeholder={
-                              isLoadingMembers
-                                ? "Loading members..."
-                                : "Select creator"
-                            }
-                          />
+                      <SelectValue
+                        placeholder={
+                          isLoadingMembers
+                            ? "Loading members..."
+                            : "Select creator"
+                        }
+                      />
                         )}
-                      </SelectTrigger>
+                    </SelectTrigger>
                       <SelectContent className="rounded-xl min-w-[300px]">
-                        {isLoadingMembers ? (
-                          <SelectItem value="loading" disabled>
-                            Loading...
-                          </SelectItem>
-                        ) : members.length === 0 ? (
-                          <SelectItem value="no-members" disabled>
-                            No members available
-                          </SelectItem>
-                        ) : (
+                      {isLoadingMembers ? (
+                        <SelectItem value="loading" disabled>
+                          Loading...
+                        </SelectItem>
+                      ) : members.length === 0 ? (
+                        <SelectItem value="no-members" disabled>
+                          No members available
+                        </SelectItem>
+                      ) : (
                           members.map((member) => {
                             return (
-                              <SelectItem key={member.id} value={member.name}>
+                          <SelectItem key={member.id} value={member.name}>
                                 <div className="flex items-center space-x-3 w-full min-w-[280px]">
                                   <RoleIcon role={member.role} size="md" />
                                   <div className="flex-1 min-w-0">
                                     <div className="font-medium text-gray-900 truncate">
-                                      {member.name}
+                            {member.name}
                                     </div>
                                     <RoleLabel
                                       role={member.role}
@@ -958,30 +965,30 @@ export default function HomePage() {
                                     />
                                   </div>
                                 </div>
-                              </SelectItem>
+                          </SelectItem>
                             );
                           })
-                        )}
-                      </SelectContent>
-                    </Select>
-                    {errors.creator && (
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {errors.creator && (
                       <p className="text-sm text-red-600 flex items-center space-x-1">
                         <AlertCircle className="h-4 w-4" />
                         <span>{errors.creator}</span>
                       </p>
-                    )}
-                  </div>
+                  )}
+                </div>
 
-                  {/* Member Field - Multi Select */}
+                {/* Member Field - Multi Select */}
                   <div className="space-y-3">
                     <Label className="text-sm font-semibold text-gray-700">
-                      Members *
-                    </Label>
+                    Members *
+                  </Label>
 
-                    {/* Show different interface based on member loading status */}
-                    {members.length > 0 ? (
-                      <>
-                        {/* Dropdown interface when members are loaded */}
+                  {/* Show different interface based on member loading status */}
+                  {members.length > 0 ? (
+                    <>
+                      {/* Dropdown interface when members are loaded */}
                         <Select
                           value={memberToAdd}
                           onValueChange={(value) => {
@@ -1019,7 +1026,7 @@ export default function HomePage() {
                                       />
                                       <div className="flex-1 min-w-0">
                                         <div className="font-medium text-gray-900 truncate">
-                                          {member.name}
+                                  {member.name}
                                         </div>
                                         <RoleLabel
                                           role={member.role}
@@ -1027,15 +1034,15 @@ export default function HomePage() {
                                         />
                                       </div>
                                     </div>
-                                  </SelectItem>
+                                </SelectItem>
                                 );
                               })}
                           </SelectContent>
                         </Select>
-                      </>
-                    ) : (
-                      <>
-                        {/* Manual input interface when members can't be loaded */}
+                    </>
+                  ) : (
+                    <>
+                      {/* Manual input interface when members can't be loaded */}
                         <div className="space-y-3">
                           <Input
                             type="text"
@@ -1057,31 +1064,31 @@ export default function HomePage() {
                               }
                             }}
                           />
-                          <p className="text-xs text-gray-500">
-                            {isLoadingMembers
-                              ? "Loading member list..."
+                        <p className="text-xs text-gray-500">
+                          {isLoadingMembers
+                            ? "Loading member list..."
                               : "Could not load members. Type name and press Enter to add."}
-                          </p>
-                        </div>
-                      </>
-                    )}
+                        </p>
+                      </div>
+                    </>
+                  )}
 
-                    {/* Selected Members Display */}
-                    {selectedMembers.length > 0 && (
+                  {/* Selected Members Display */}
+                  {selectedMembers.length > 0 && (
                       <div className="space-y-3">
                         <Label className="text-xs font-semibold text-gray-600">
-                          Selected Members:
-                        </Label>
-                        <div className="flex flex-wrap gap-2">
+                        Selected Members:
+                      </Label>
+                      <div className="flex flex-wrap gap-2">
                           {selectedMembers.map((memberName) => {
                             // Find the member object to get role information
                             const member = members.find(m => m.name === memberName);
                             
                             return (
-                              <div
-                                key={memberName}
+                          <div
+                            key={memberName}
                                 className="flex items-center space-x-2 px-4 py-2 rounded-xl border transition-colors max-w-full"
-                              >
+                          >
                                 <RoleIcon role={member?.role} size="md" />
                                 <div className="flex flex-col min-w-0 flex-1">
                                   <span className="font-medium text-gray-900 truncate">{memberName}</span>
@@ -1089,38 +1096,38 @@ export default function HomePage() {
                                     <RoleLabel role={member.role} size="sm" />
                                   )}
                                 </div>
-                                <button
-                                  type="button"
-                                  onClick={() => removeMember(memberName)}
+                            <button
+                              type="button"
+                              onClick={() => removeMember(memberName)}
                                   className="hover:bg-black hover:bg-opacity-10 rounded-full p-1 transition-colors flex-shrink-0"
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </div>
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
                             );
                           })}
-                        </div>
                       </div>
-                    )}
+                    </div>
+                  )}
 
-                    {errors.member && (
+                  {errors.member && (
                       <p className="text-sm text-red-600 flex items-center space-x-1">
                         <AlertCircle className="h-4 w-4" />
                         <span>{errors.member}</span>
                       </p>
-                    )}
+                  )}
                   </div>
                 </div>
               </div>
 
               {/* Action Buttons */}
               <div className="space-y-4 pt-6 border-t border-gray-100">
-                <Button
-                  type="button"
-                  onClick={checkAvailability}
-                  disabled={isChecking || isSubmitting}
-                  className="w-full rounded-xl font-medium py-3 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white shadow-lg shadow-orange-500/25 hover:shadow-xl transition-all duration-200 disabled:bg-gray-400 disabled:shadow-none"
-                >
+              <Button
+                type="button"
+                onClick={checkAvailability}
+                disabled={isChecking || isSubmitting}
+                  className="w-full rounded-xl font-medium py-3 bg-gradient-to-r from-blue-400 to-indigo-500 hover:from-blue-500 hover:to-indigo-600 text-white shadow-lg shadow-blue-500/25 hover:shadow-xl transition-all duration-200 disabled:bg-gray-400 disabled:shadow-none"
+              >
                   {isChecking ? (
                     <div className="flex items-center space-x-2">
                       <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
@@ -1129,24 +1136,24 @@ export default function HomePage() {
                   ) : (
                     <div className="flex items-center space-x-2">
                       <CheckCircle className="h-4 w-4" />
-                      <span>ตรวจสอบห้องและสมาชิกว่าง</span>
+                      <span>ตรวจสอบห้องและสมาชิกว่าง (ไม่บังคับ)</span>
                     </div>
                   )}
-                </Button>
+              </Button>
                 
-                {checkResult && (
+              {checkResult && (
                   <Alert className="rounded-xl bg-blue-50 border-2 border-blue-200">
-                    <AlertDescription className="text-blue-800 whitespace-pre-wrap">
-                      {checkResult}
-                    </AlertDescription>
-                  </Alert>
-                )}
+                  <AlertDescription className="text-blue-800 whitespace-pre-wrap">
+                    {checkResult}
+                  </AlertDescription>
+                </Alert>
+              )}
                 
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
+              <Button
+                type="submit"
+                disabled={isSubmitting}
                   className="w-full rounded-xl font-medium py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg shadow-green-500/25 hover:shadow-xl transition-all duration-200 disabled:bg-gray-400 disabled:shadow-none"
-                >
+              >
                   {isSubmitting ? (
                     <div className="flex items-center space-x-2">
                       <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
@@ -1158,7 +1165,7 @@ export default function HomePage() {
                       <span>Submit Meeting</span>
                     </div>
                   )}
-                </Button>
+              </Button>
               </div>
             </form>
           </CardContent>

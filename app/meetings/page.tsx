@@ -33,8 +33,10 @@ import {
   Eye,
   Video,
   Building,
+  AlertCircle,
 } from "lucide-react";
 import Link from "next/link";
+import { RoleIcon, RoleLabel } from "@/components/ui/role-badge";
 
 interface MeetingData {
   id: number;
@@ -47,6 +49,8 @@ interface MeetingData {
   version: number;
   meeting_room: number;
   end_date: string;
+  time?: string;
+  end_time?: string;
 }
 
 interface Member {
@@ -210,6 +214,9 @@ export default function ViewMeetingsPage() {
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
   const [selectedMembers, setSelectedMembers] = useState<Member[]>([]);
   const [memberToAdd, setMemberToAdd] = useState<string>("");
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [meetingToDelete, setMeetingToDelete] = useState<MeetingData | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const loadMeetings = async () => {
     try {
@@ -237,6 +244,10 @@ export default function ViewMeetingsPage() {
 
   useEffect(() => {
     loadMeetings();
+  }, []);
+
+  useEffect(() => {
+    loadMembers();
   }, []);
 
   // Load members
@@ -355,6 +366,7 @@ export default function ViewMeetingsPage() {
         ...editingMeeting,
         date: isoDateTime,
         end_date: isoEndDateTime,
+        version: editingMeeting.version + 1, // Increment version by 1
       };
 
       // Remove separate time fields
@@ -401,17 +413,19 @@ export default function ViewMeetingsPage() {
 
   // Delete meeting
   const handleDeleteMeeting = async (meetingId: number) => {
-    // Show popup warning
-    if (
-      !confirm(
-        "คุณแน่ใจหรือไม่ที่จะลบการประชุมนี้? \nAre you sure you want to delete this meeting?",
-      )
-    ) {
-      return;
+    const meeting = meetings.find(m => m.id === meetingId);
+    if (meeting) {
+      setMeetingToDelete(meeting);
+      setDeleteModalOpen(true);
     }
+  };
+
+  // Confirm delete meeting
+  const confirmDeleteMeeting = async () => {
+    if (!meetingToDelete) return;
 
     try {
-      setIsLoading(true);
+      setIsDeleting(true);
 
       // Send POST request with body containing id + 1
       const response = await fetch(
@@ -423,25 +437,33 @@ export default function ViewMeetingsPage() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            id: meetingId + 1,
+            id: meetingToDelete.id + 1,
           }),
         },
       );
 
       // With no-cors mode, we can't read the response status
       // So we assume success if no error is thrown
-      alert("ลบการประชุมเรียบร้อยแล้ว!\nMeeting deleted successfully!");
-
+      setDeleteModalOpen(false);
+      setMeetingToDelete(null);
+      
       // Refresh the meetings list
       await loadMeetings();
     } catch (error) {
       console.error("Delete error:", error);
       alert(
-        "เกิดข้อผิดพลาดในการลบการประชุม\nError deleting meeting. Please try again.",
+        "Error deleting meeting. Please try again.",
       );
     } finally {
-      setIsLoading(false);
+      setIsDeleting(false);
     }
+  };
+
+  // Close delete modal
+  const closeDeleteModal = () => {
+    setDeleteModalOpen(false);
+    setMeetingToDelete(null);
+    setIsDeleting(false);
   };
 
   // Close edit modal
@@ -487,6 +509,35 @@ export default function ViewMeetingsPage() {
     }
   };
 
+  // Helper function to get member information
+  const getMemberInfo = (memberName: string) => {
+    return members.find(m => m.name === memberName);
+  };
+
+  // Helper function to render participants with icons and roles
+  const renderParticipants = (memberString: string) => {
+    // Clean the member string by removing brackets and quotes
+    const cleanMemberString = memberString.replace(/[\[\]"]/g, '');
+    const memberNames = cleanMemberString.split(", ").map(name => name.trim()).filter(Boolean);
+    
+    return (
+      <div className="space-y-2">
+        {memberNames.map((memberName, index) => {
+          const memberInfo = getMemberInfo(memberName);
+          return (
+            <div key={index} className="flex items-center space-x-2 p-2 bg-gray-50 rounded-lg">
+              <span className="text-sm">👤</span>
+              <span className="font-medium text-gray-900">{memberName}</span>
+              {memberInfo?.role && (
+                <RoleLabel role={memberInfo.role} size="sm" />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       {/* Header */}
@@ -496,7 +547,7 @@ export default function ViewMeetingsPage() {
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl">
                 <Calendar className="h-6 w-6 text-white" />
-              </div>
+            </div>
               <div>
                 <h1 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
                   Meeting.com
@@ -534,29 +585,29 @@ export default function ViewMeetingsPage() {
                 <Users className="h-8 w-8 text-blue-600" />
               </div>
               <div>
-                <h2 className="text-3xl font-bold text-gray-900">All Meetings</h2>
+            <h2 className="text-3xl font-bold text-gray-900">All Meetings</h2>
                 <p className="text-gray-600 mt-1">
                   Manage and organize your team meetings efficiently
                 </p>
-              </div>
+          </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
-              <Button
-                onClick={loadMeetings}
-                disabled={isLoading}
+            <Button
+              onClick={loadMeetings}
+              disabled={isLoading}
                 className="flex items-center space-x-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 rounded-xl px-4 py-2"
-              >
-                <RefreshCw
-                  className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
-                />
-                <span>Refresh</span>
-              </Button>
-              <Link href="/">
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+              />
+              <span>Refresh</span>
+            </Button>
+            <Link href="/">
                 <Button className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/25 hover:shadow-xl transition-all duration-200 rounded-xl px-6 py-2">
                   <Plus className="h-4 w-4" />
                   <span>Add New Meeting</span>
-                </Button>
-              </Link>
+              </Button>
+            </Link>
             </div>
           </div>
         </div>
@@ -641,17 +692,17 @@ export default function ViewMeetingsPage() {
                   <Users className="h-10 w-10 text-blue-600" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-3">
-                  No Meetings Found
-                </h3>
+                No Meetings Found
+              </h3>
                 <p className="text-gray-600 mb-8 leading-relaxed">
                   You haven't created any meetings yet. Start by creating your first meeting to get organized.
-                </p>
-                <Link href="/">
+              </p>
+              <Link href="/">
                   <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/25 hover:shadow-xl transition-all duration-200 rounded-xl px-8 py-3">
                     <Plus className="h-5 w-5 mr-2" />
-                    Create Your First Meeting
-                  </Button>
-                </Link>
+                  Create Your First Meeting
+                </Button>
+              </Link>
               </div>
             </div>
           </div>
@@ -679,15 +730,15 @@ export default function ViewMeetingsPage() {
                         {meeting.topic}
                       </CardTitle>
                       <div className="flex items-center space-x-2">
-                        <span
+                      <span
                           className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                            meeting.type.toLowerCase() === "online"
+                          meeting.type.toLowerCase() === "online"
                               ? "bg-green-100 text-green-700 border border-green-200"
                               : "bg-blue-100 text-blue-700 border border-blue-200"
-                          }`}
-                        >
-                          {meeting.type}
-                        </span>
+                        }`}
+                      >
+                        {meeting.type}
+                      </span>
                         <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                           <Button
                             size="sm"
@@ -696,7 +747,7 @@ export default function ViewMeetingsPage() {
                           >
                             <MoreVertical className="h-4 w-4" />
                           </Button>
-                        </div>
+                    </div>
                       </div>
                     </div>
                     <p className="text-sm text-gray-600 line-clamp-3 leading-relaxed">
@@ -709,13 +760,13 @@ export default function ViewMeetingsPage() {
                     <div className="space-y-3">
                       <div className="flex items-center space-x-3 text-sm">
                         <div className="p-2 bg-blue-50 rounded-lg">
-                          <Calendar className="h-4 w-4 text-blue-600" />
+                      <Calendar className="h-4 w-4 text-blue-600" />
                         </div>
                         <div>
                           <p className="font-semibold text-gray-900">{startDateTime.date}</p>
                           <p className="text-gray-500">Meeting Date</p>
                         </div>
-                      </div>
+                    </div>
 
                       <div className="flex items-center space-x-3 text-sm">
                         <div className="p-2 bg-green-50 rounded-lg">
@@ -723,11 +774,11 @@ export default function ViewMeetingsPage() {
                         </div>
                         <div>
                           <p className="font-semibold text-gray-900">
-                            {startDateTime.time} - {endDateTime.time}
+                        {startDateTime.time} - {endDateTime.time}
                           </p>
                           <p className="text-gray-500">Duration: {duration}</p>
                         </div>
-                      </div>
+                    </div>
 
                       <div className="flex items-center space-x-3 text-sm">
                         <div className="p-2 bg-purple-50 rounded-lg">
@@ -745,7 +796,7 @@ export default function ViewMeetingsPage() {
                       <div className="flex items-center space-x-3 text-sm">
                         <div className="p-2 bg-orange-50 rounded-lg">
                           <Users className="h-4 w-4 text-orange-600" />
-                        </div>
+                      </div>
                         <div>
                           <p className="font-semibold text-gray-900">{meeting.creator}</p>
                           <p className="text-gray-500">Meeting Creator</p>
@@ -753,16 +804,18 @@ export default function ViewMeetingsPage() {
                       </div>
                       
                       <div className="text-sm">
-                        <p className="font-medium text-gray-700 mb-1">Participants:</p>
-                        <p className="text-gray-600 line-clamp-2 leading-relaxed">
-                          {meeting.member}
-                        </p>
+                        <div className="flex items-center space-x-2 mb-2">
+                          <div className="p-1.5 bg-blue-50 rounded-lg">
+                            <Users className="h-3 w-3 text-blue-600" />
+                          </div>
+                          <p className="font-medium text-gray-700">Participants:</p>
+                        </div>
+                        {renderParticipants(meeting.member)}
                       </div>
                     </div>
 
-                    {/* Meeting ID and Version */}
-                    <div className="flex justify-between items-center text-xs text-gray-400 border-t border-gray-100 pt-3">
-                      <span>ID: {meeting.id}</span>
+                    {/* Meeting Version */}
+                    <div className="flex justify-end items-center text-xs text-gray-400 border-t border-gray-100 pt-3">
                       <span className="px-2 py-1 bg-gray-100 rounded-full">v{meeting.version}</span>
                     </div>
 
@@ -858,7 +911,7 @@ export default function ViewMeetingsPage() {
                     className="rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                     placeholder="Enter meeting topic"
                   />
-                  <p className="text-xs text-gray-500 mt-2">หัวข้อการประชุม</p>
+                  <p className="text-xs text-gray-500 mt-2">Meeting Topic</p>
                 </div>
 
                 {/* Description */}
@@ -879,7 +932,7 @@ export default function ViewMeetingsPage() {
                     placeholder="Describe the meeting details"
                   />
                   <p className="text-xs text-gray-500 mt-2">
-                    อธิบายรายละเอียดการประชุม
+                    Meeting Description
                   </p>
                 </div>
 
@@ -902,7 +955,7 @@ export default function ViewMeetingsPage() {
                       <SelectItem value="onsite">Onsite</SelectItem>
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-gray-500 mt-2">ประเภทการประชุม</p>
+                  <p className="text-xs text-gray-500 mt-2">Meeting Type</p>
                 </div>
 
                 {/* Meeting Room */}
@@ -929,7 +982,7 @@ export default function ViewMeetingsPage() {
                     placeholder="1-5"
                   />
                   <p className="text-xs text-gray-500 mt-2">
-                    ห้องประชุม 1-5 เท่านั้น
+                    Meeting Room (1-5 only)
                   </p>
                 </div>
 
@@ -950,7 +1003,7 @@ export default function ViewMeetingsPage() {
                     }
                     className="rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                   />
-                  <p className="text-xs text-gray-500 mt-2">วันที่จัดประชุม</p>
+                  <p className="text-xs text-gray-500 mt-2">Meeting Date</p>
                 </div>
 
                 {/* Start Time */}
@@ -970,7 +1023,7 @@ export default function ViewMeetingsPage() {
                     }
                     className="rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                   />
-                  <p className="text-xs text-gray-500 mt-2">เวลาเริ่มประชุม</p>
+                  <p className="text-xs text-gray-500 mt-2">Meeting Start Time</p>
                 </div>
 
                 {/* End Time */}
@@ -991,7 +1044,7 @@ export default function ViewMeetingsPage() {
                     className="rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                   />
                   <p className="text-xs text-gray-500 mt-2">
-                    เวลาสิ้นสุดประชุม
+                    Meeting End Time
                   </p>
                 </div>
 
@@ -1008,7 +1061,7 @@ export default function ViewMeetingsPage() {
                       onValueChange={handleMemberSelect}
                     >
                       <SelectTrigger className="rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500">
-                        <SelectValue placeholder="เลือกสมาชิก" />
+                        <SelectValue placeholder="Select Member" />
                       </SelectTrigger>
                       <SelectContent className="rounded-xl">
                         {members
@@ -1021,6 +1074,7 @@ export default function ViewMeetingsPage() {
                           .map((member) => (
                             <SelectItem key={member.id} value={member.name}>
                               <div className="flex items-center space-x-2">
+                                <span className="text-sm">👤</span>
                                 <span>{member.name}</span>
                                 <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">
                                   {member.role}
@@ -1035,7 +1089,7 @@ export default function ViewMeetingsPage() {
                             ),
                         ).length === 0 && (
                           <SelectItem value="no-more" disabled>
-                            เลือกสมาชิกครบแล้ว
+                            All members selected
                           </SelectItem>
                         )}
                       </SelectContent>
@@ -1043,8 +1097,8 @@ export default function ViewMeetingsPage() {
                   ) : (
                     <div className="text-sm text-gray-500 mt-1">
                       {isLoadingMembers
-                        ? "กำลังโหลดสมาชิก..."
-                        : "ไม่มีข้อมูลสมาชิก"}
+                        ? "Loading members..."
+                        : "No member data available"}
                     </div>
                   )}
 
@@ -1052,7 +1106,7 @@ export default function ViewMeetingsPage() {
                   {selectedMembers.length > 0 && (
                     <div className="space-y-3 mt-4">
                       <Label className="text-xs font-semibold text-gray-600">
-                        สมาชิกที่เลือก:
+                        Selected Members:
                       </Label>
                       <div className="flex flex-wrap gap-2">
                         {selectedMembers.map((member) => (
@@ -1060,6 +1114,7 @@ export default function ViewMeetingsPage() {
                             key={member.id}
                             className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors"
                           >
+                            <span className="text-sm">👤</span>
                             <span className="font-medium text-gray-900">
                               {member.name}
                             </span>
@@ -1070,7 +1125,7 @@ export default function ViewMeetingsPage() {
                               type="button"
                               onClick={() => removeMember(member.id)}
                               className="hover:bg-blue-200 rounded-full p-1 transition-colors"
-                              title="ลบสมาชิก"
+                              title="Remove Member"
                             >
                               <X className="h-3 w-3 text-gray-600" />
                             </button>
@@ -1081,7 +1136,7 @@ export default function ViewMeetingsPage() {
                   )}
 
                   <p className="text-xs text-gray-500 mt-2">
-                    เลือกสมาชิกจากรายการด้านบน
+                    Select members from the list above
                   </p>
                 </div>
 
@@ -1096,7 +1151,22 @@ export default function ViewMeetingsPage() {
                     className="rounded-xl bg-gray-50 text-gray-500 border-gray-200"
                   />
                   <p className="text-xs text-gray-500 mt-2">
-                    ไม่สามารถแก้ไขผู้สร้างได้
+                    Creator cannot be modified
+                  </p>
+                </div>
+
+                {/* Version Info */}
+                <div className="md:col-span-2">
+                  <Label className="text-sm font-semibold text-gray-700 mb-2 block">
+                    Version
+                  </Label>
+                  <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-xl border border-blue-200">
+                    <span className="text-sm text-gray-600">Current: v{editingMeeting.version}</span>
+                    <span className="text-blue-600">→</span>
+                    <span className="text-sm font-semibold text-blue-700">New: v{editingMeeting.version + 1}</span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Version will automatically increment when saving changes
                   </p>
                 </div>
               </div>
@@ -1126,6 +1196,80 @@ export default function ViewMeetingsPage() {
                   <>
                     <Save className="h-4 w-4 mr-2" />
                     Save Changes
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Modal */}
+      {deleteModalOpen && meetingToDelete && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full border border-gray-200">
+            {/* Modal Header */}
+            <div className="flex justify-between items-center p-6 border-b border-gray-100">
+              <div className="flex items-center space-x-3">
+                <div className="p-3 bg-gradient-to-r from-red-600 to-pink-600 rounded-xl">
+                  <Trash2 className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Delete Meeting</h2>
+                  <p className="text-gray-600">This action cannot be undone</p>
+                </div>
+              </div>
+              <Button
+                onClick={closeDeleteModal}
+                variant="ghost"
+                size="sm"
+                className="h-10 w-10 p-0 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-xl"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-4">
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                <div className="flex items-start space-x-3">
+                  <div className="p-2 bg-red-100 rounded-lg">
+                    <AlertCircle className="h-5 w-5 text-red-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-red-800 mb-1">Warning</h3>
+                    <p className="text-sm text-red-700">
+                      Are you sure you want to delete this meeting? This action cannot be undone and all meeting data will be permanently removed.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-end space-x-3 p-6 border-t border-gray-100 bg-gray-50/50 rounded-b-3xl">
+              <Button
+                onClick={closeDeleteModal}
+                variant="outline"
+                disabled={isDeleting}
+                className="rounded-xl border-gray-200 hover:bg-gray-50 px-6 py-2"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={confirmDeleteMeeting}
+                disabled={isDeleting}
+                className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white shadow-lg shadow-red-500/25 hover:shadow-xl transition-all duration-200 rounded-xl px-6 py-2"
+              >
+                {isDeleting ? (
+                  <>
+                    <RefreshCw className="animate-spin h-4 w-4 mr-2" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Meeting
                   </>
                 )}
               </Button>
