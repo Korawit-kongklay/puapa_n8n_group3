@@ -73,15 +73,13 @@ async function fetchMembers(): Promise<{
 }> {
   try {
     const response = await fetch(
-      "https://script.google.com/macros/s/AKfycbyXeVxE-jmRQgyH8fblZU7EocCy2eOT_Qnq6j22YiFoT45jVXG_RXtGPHtsRtroLcPs/exec?sheet=Members",
+      "https://script.google.com/macros/s/AKfycbxW8z2Ba9FBtdxCcVa69JmtRFce7GBw3ahwYTEAs6ZqGajWdcKA0Pybjc0QS0JKfKmT/exec?sheet=Members",
       {
         method: "GET",
         cache: "no-store",
       },
     );
-
     const data = await response.json();
-
     if (!response.ok) {
       return {
         members: [],
@@ -89,7 +87,6 @@ async function fetchMembers(): Promise<{
         details: data.details,
       };
     }
-
     if (data.error) {
       return {
         members: [],
@@ -97,7 +94,6 @@ async function fetchMembers(): Promise<{
         details: data.details,
       };
     }
-
     if (!data.members || !Array.isArray(data.members)) {
       return {
         members: [],
@@ -105,7 +101,6 @@ async function fetchMembers(): Promise<{
         details: "Expected 'members' array in API response",
       };
     }
-
     return {
       members: data.members,
     };
@@ -540,14 +535,12 @@ export default function ViewMeetingsPage() {
     return (
       <div className="space-y-2">
         {memberNames.map((memberName, index) => {
-          const memberInfo = getMemberInfo(memberName);
+          // const memberInfo = getMemberInfo(memberName); // No longer needed
           return (
             <div key={index} className="flex items-center space-x-2 p-2 bg-gray-50 rounded-lg">
               <span className="text-sm">👤</span>
               <span className="font-medium text-gray-900">{memberName}</span>
-              {memberInfo?.role && (
-                <RoleLabel role={memberInfo.role} size="sm" />
-              )}
+              {/* Role label removed */}
             </div>
           );
         })}

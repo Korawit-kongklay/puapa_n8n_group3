@@ -183,7 +183,6 @@ async function submitMeeting(data: MeetingData) {
 
   // สร้าง body ให้ตรงกับตัวอย่าง
   const submissionData = {
-    id: "=ROW() - 1",
     topic: data.topic,
     description: data.description,
     type: data.type,
@@ -302,6 +301,10 @@ export default function HomePage() {
   const [checkResult, setCheckResult] = useState<string | null>(null);
   const [isUsingFallbackMembers, setIsUsingFallbackMembers] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [aiDescription, setAIDescription] = useState("");
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
+  const [aiError, setAIError] = useState("");
+  const [showCopySuccess, setShowCopySuccess] = useState(false);
 
   useEffect(() => {
     loadMembers();
@@ -529,6 +532,27 @@ export default function HomePage() {
     return today.toISOString().split("T")[0];
   };
 
+  // Function to call AI API
+  const handleGenerateDescription = async () => {
+    setIsGeneratingDescription(true);
+    setAIError("");
+    setAIDescription("");
+    try {
+      let res = await fetch("/api/ai-description", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic: formData.topic, description: formData.description }),
+      });
+      if (!res.ok) throw new Error("AI API error");
+      const data = await res.json();
+      setAIDescription(data.description || "");
+    } catch (e) {
+      setAIError("เกิดข้อผิดพลาดในการขอคำอธิบายจาก AI");
+    } finally {
+      setIsGeneratingDescription(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       {/* Toast Notification */}
@@ -663,9 +687,7 @@ export default function HomePage() {
                 <Textarea
                   id="description"
                   value={formData.description}
-                  onChange={(e) =>
-                    handleInputChange("description", e.target.value)
-                  }
+                  onChange={(e) => handleInputChange("description", e.target.value)}
                     className={`rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500 min-h-[120px] ${errors.description ? "border-red-300 focus:border-red-500 focus:ring-red-500" : ""}`}
                   placeholder="Enter meeting description"
                 />
@@ -674,6 +696,42 @@ export default function HomePage() {
                       <AlertCircle className="h-4 w-4" />
                       <span>{errors.description}</span>
                     </p>
+                )}
+                <div className="flex items-center gap-2 mt-2">
+                  <Button
+                    type="button"
+                    onClick={handleGenerateDescription}
+                    disabled={isGeneratingDescription || !formData.topic.trim()}
+                    className="rounded-lg px-4 py-2 bg-gradient-to-r from-blue-400 to-indigo-500 text-white"
+                  >
+                    {isGeneratingDescription ? (
+                      <span>กำลังปรับปรุงคำอธิบาย...</span>
+                    ) : (
+                      <span>ให้ AI ปรับปรุง Description</span>
+                    )}
+                  </Button>
+                  {aiError && <span className="text-red-500 text-sm">{aiError}</span>}
+                </div>
+                {aiDescription && (
+                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-xl">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="font-semibold text-blue-800">AI Suggestion</span>
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="ml-2 bg-blue-600 text-white rounded-lg px-3 py-1"
+                        onClick={() => {
+                          setFormData((prev) => ({ ...prev, description: aiDescription }));
+                          setShowCopySuccess(true);
+                          setTimeout(() => setShowCopySuccess(false), 1500);
+                        }}
+                      >
+                        คัดลอกไปใช้
+                      </Button>
+                    </div>
+                    <div className="whitespace-pre-line text-blue-900 text-sm">{aiDescription}</div>
+                    {showCopySuccess && <div className="text-green-600 text-xs mt-1">คัดลอกแล้ว!</div>}
+                  </div>
                 )}
               </div>
 
@@ -855,20 +913,21 @@ export default function HomePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Creator Field */}
                   <div className="space-y-3">
-                  <Label
-                    htmlFor="creator"
+                    <Label
+                      htmlFor="creator"
                       className="text-sm font-semibold text-gray-700"
-                  >
-                    Creator *
-                  </Label>
-                  <Select
-                    value={formData.creator}
-                    onValueChange={(value) =>
-                      handleInputChange("creator", value)
-                    }
-                  >
-                    <SelectTrigger
-                        className={`w-full rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500 ${
+                    >
+                      Creator *
+                    </Label>
+                    <Select
+                      value={formData.creator}
+                      onValueChange={(value) =>
+                        handleInputChange("creator", value)
+                      }
+                    >
+                      {/* Force fixed width to prevent overflow of role label */}
+                      <SelectTrigger
+                        className={`w-[380px] rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500 ${
                           errors.creator
                             ? "border-red-300 focus:border-red-500 focus:ring-red-500"
                             : ""
@@ -898,33 +957,33 @@ export default function HomePage() {
                             );
                           })()
                         ) : (
-                      <SelectValue
-                        placeholder={
-                          isLoadingMembers
-                            ? "Loading members..."
-                            : "Select creator"
-                        }
-                      />
+                          <SelectValue
+                            placeholder={
+                              isLoadingMembers
+                                ? "Loading members..."
+                                : "Select creator"
+                            }
+                          />
                         )}
-                    </SelectTrigger>
-                      <SelectContent className="rounded-xl min-w-[300px]">
-                      {isLoadingMembers ? (
-                        <SelectItem value="loading" disabled>
-                          Loading...
-                        </SelectItem>
-                      ) : members.length === 0 ? (
-                        <SelectItem value="no-members" disabled>
-                          No members available
-                        </SelectItem>
-                      ) : (
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl min-w-[380px]">
+                        {isLoadingMembers ? (
+                          <SelectItem value="loading" disabled>
+                            Loading...
+                          </SelectItem>
+                        ) : members.length === 0 ? (
+                          <SelectItem value="no-members" disabled>
+                            No members available
+                          </SelectItem>
+                        ) : (
                           members.map((member) => {
                             return (
-                          <SelectItem key={member.id} value={member.name}>
+                              <SelectItem key={member.id} value={member.name}>
                                 <div className="flex items-center space-x-3 w-full min-w-[280px]">
                                   <RoleIcon role={member.role} size="md" />
                                   <div className="flex-1 min-w-0">
                                     <div className="font-medium text-gray-900 truncate">
-                            {member.name}
+                                      {member.name}
                                     </div>
                                     <RoleLabel
                                       role={member.role}
@@ -932,19 +991,19 @@ export default function HomePage() {
                                     />
                                   </div>
                                 </div>
-                          </SelectItem>
+                              </SelectItem>
                             );
                           })
-                      )}
-                    </SelectContent>
-                  </Select>
-                  {errors.creator && (
+                        )}
+                      </SelectContent>
+                    </Select>
+                    {errors.creator && (
                       <p className="text-sm text-red-600 flex items-center space-x-1">
                         <AlertCircle className="h-4 w-4" />
                         <span>{errors.creator}</span>
                       </p>
-                  )}
-                </div>
+                    )}
+                  </div>
 
                 {/* Member Field - Multi Select */}
                   <div className="space-y-3">

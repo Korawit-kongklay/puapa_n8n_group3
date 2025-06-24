@@ -14,10 +14,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "./card";
 import { Alert, AlertDescription } from "./alert";
 import { Calendar, Users, Clock, X } from "lucide-react";
 import { toZonedTime } from "date-fns-tz";
+import { RoleIcon, RoleLabel } from "./role-badge";
 
 interface Member {
   id: number;
   name: string;
+  role: string;
 }
 
 interface MeetingData {
@@ -44,7 +46,7 @@ interface EditMeetingModalProps {
 async function fetchMembers(): Promise<Member[]> {
   try {
     const response = await fetch(
-      "https://script.google.com/macros/s/AKfycbyXeVxE-jmRQgyH8fblZU7EocCy2eOT_Qnq6j22YiFoT45jVXG_RXtGPHtsRtroLcPs/exec?sheet=Members",
+      "https://script.google.com/macros/s/AKfycbxW8z2Ba9FBtdxCcVa69JmtRFce7GBw3ahwYTEAs6ZqGajWdcKA0Pybjc0QS0JKfKmT/exec?sheet=Members",
       {
         method: "GET",
         cache: "no-store",
@@ -300,7 +302,13 @@ export function EditMeetingModal({ meeting, isOpen, onClose, onSave }: EditMeeti
                       <SelectItem value="no-members" disabled>No members available</SelectItem>
                     ) : (
                       members.map((member) => (
-                        <SelectItem key={member.id} value={member.name}>{member.name}</SelectItem>
+                        <SelectItem key={member.id} value={member.name}>
+                          <div className="flex items-center space-x-2">
+                            <RoleIcon role={member.role} size="md" />
+                            <span>{member.name}</span>
+                            <RoleLabel role={member.role} size="sm" />
+                          </div>
+                        </SelectItem>
                       ))
                     )}
                   </SelectContent>
@@ -317,7 +325,13 @@ export function EditMeetingModal({ meeting, isOpen, onClose, onSave }: EditMeeti
                         <SelectTrigger className={`flex-1 rounded-lg ${errors.member ? "border-red-300" : "border-gray-300"}`}><SelectValue placeholder="Select member to add" /></SelectTrigger>
                         <SelectContent>
                           {members.filter(member => !selectedMembers.includes(member.name)).map(member => (
-                            <SelectItem key={member.id} value={member.name}>{member.name}</SelectItem>
+                            <SelectItem key={member.id} value={member.name}>
+                              <div className="flex items-center space-x-2">
+                                <RoleIcon role={member.role} size="md" />
+                                <span>{member.name}</span>
+                                <RoleLabel role={member.role} size="sm" />
+                              </div>
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -341,7 +355,16 @@ export function EditMeetingModal({ meeting, isOpen, onClose, onSave }: EditMeeti
                     <div className="flex flex-wrap gap-2">
                       {selectedMembers.map((memberName) => (
                         <div key={memberName} className="flex items-center space-x-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
-                          <span>{memberName}</span>
+                          {(() => {
+                            const member = members.find(m => m.name === memberName);
+                            return (
+                              <>
+                                <RoleIcon role={member?.role} size="md" />
+                                <span>{memberName}</span>
+                                {member && <RoleLabel role={member.role} size="sm" />}
+                              </>
+                            );
+                          })()}
                           <button type="button" onClick={() => removeMember(memberName)} className="hover:bg-blue-200 rounded-full p-1 transition-colors"><X className="h-3 w-3" /></button>
                         </div>
                       ))}
