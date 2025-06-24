@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { RoleIcon, RoleLabel } from "@/components/ui/role-badge";
+import { Toast } from "@/components/ui/toast";
 
 interface MeetingData {
   id: number;
@@ -217,6 +218,8 @@ export default function ViewMeetingsPage() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [meetingToDelete, setMeetingToDelete] = useState<MeetingData | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showRefreshToast, setShowRefreshToast] = useState(false);
+  const [refreshToastMessage, setRefreshToastMessage] = useState("");
 
   const loadMeetings = async () => {
     try {
@@ -321,11 +324,23 @@ export default function ViewMeetingsPage() {
 
     setEditingMeeting(editingData);
 
-    // Set selected members based on current meeting members
-    const memberNames = meeting.member
-      .split(", ")
-      .map((name) => name.trim())
-      .filter(Boolean);
+    // Parse member field as array if it's a JSON array string
+    let memberNames: string[] = [];
+    if (meeting.member.trim().startsWith("[")) {
+      try {
+        memberNames = JSON.parse(meeting.member);
+      } catch {
+        memberNames = meeting.member
+          .split(", ")
+          .map((name) => name.trim())
+          .filter(Boolean);
+      }
+    } else {
+      memberNames = meeting.member
+        .split(", ")
+        .map((name) => name.trim())
+        .filter(Boolean);
+    }
     const selectedMemberList = members.filter((member) =>
       memberNames.includes(member.name),
     );
@@ -373,7 +388,7 @@ export default function ViewMeetingsPage() {
       delete (updateData as any).time;
       delete (updateData as any).end_time;
 
-      const response = await fetch(
+      await fetch(
         "https://g3.pupa-ai.com/webhook/meeting-update",
         {
           method: "POST",
@@ -385,18 +400,19 @@ export default function ViewMeetingsPage() {
         },
       );
 
-      // With no-cors mode, we can't read the response status
-      // So we assume success if no error is thrown
       setUpdateMessage({
         type: "success",
         text: "Meeting updated successfully!",
       });
       setIsEditModalOpen(false);
       setEditingMeeting(null);
-      // Auto refresh the page
+      // Show toast and delay refresh
+      setRefreshToastMessage("กำลังอัปเดตข้อมูล กรุณารอสักครู่...");
+      setShowRefreshToast(true);
       setTimeout(() => {
         loadMeetings();
-      }, 5000);
+        setShowRefreshToast(false);
+      }, 3000);
     } catch (error) {
       console.error("Update error:", error);
       setUpdateMessage({
@@ -427,8 +443,7 @@ export default function ViewMeetingsPage() {
     try {
       setIsDeleting(true);
 
-      // Send POST request with body containing id + 1
-      const response = await fetch(
+      await fetch(
         "https://g3.pupa-ai.com/webhook/meeting-delete",
         {
           method: "POST",
@@ -442,13 +457,15 @@ export default function ViewMeetingsPage() {
         },
       );
 
-      // With no-cors mode, we can't read the response status
-      // So we assume success if no error is thrown
       setDeleteModalOpen(false);
       setMeetingToDelete(null);
-      
-      // Refresh the meetings list
-      await loadMeetings();
+      // Show toast and delay refresh
+      setRefreshToastMessage("กำลังอัปเดตข้อมูล กรุณารอสักครู่...");
+      setShowRefreshToast(true);
+      setTimeout(() => {
+        loadMeetings();
+        setShowRefreshToast(false);
+      }, 3000);
     } catch (error) {
       console.error("Delete error:", error);
       alert(
@@ -538,8 +555,21 @@ export default function ViewMeetingsPage() {
     );
   };
 
+  // Refresh button handler (immediate refresh)
+  const handleManualRefresh = () => {
+    loadMeetings();
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      {/* Toast for delayed refresh */}
+      <Toast
+        type="success"
+        message={refreshToastMessage}
+        show={showRefreshToast}
+        onClose={() => setShowRefreshToast(false)}
+        duration={3000}
+      />
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-200/50 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -593,7 +623,7 @@ export default function ViewMeetingsPage() {
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
             <Button
-              onClick={loadMeetings}
+              onClick={handleManualRefresh}
               disabled={isLoading}
                 className="flex items-center space-x-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 rounded-xl px-4 py-2"
             >
@@ -656,7 +686,7 @@ export default function ViewMeetingsPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Active Rooms</p>
                 <p className="text-2xl font-bold text-orange-600">
-                  {new Set(meetings.map(m => m.meeting_room)).size}
+                  {new Set(meetings.filter(m => m.meeting_room !== 0).map(m => m.meeting_room)).size}
                 </p>
               </div>
               <div className="p-3 bg-orange-100 rounded-xl">
@@ -760,33 +790,40 @@ export default function ViewMeetingsPage() {
                     <div className="space-y-3">
                       <div className="flex items-center space-x-3 text-sm">
                         <div className="p-2 bg-blue-50 rounded-lg">
-                      <Calendar className="h-4 w-4 text-blue-600" />
+                          <Calendar className="h-4 w-4 text-blue-600" />
                         </div>
                         <div>
                           <p className="font-semibold text-gray-900">{startDateTime.date}</p>
                           <p className="text-gray-500">Meeting Date</p>
                         </div>
-                    </div>
-
+                      </div>
                       <div className="flex items-center space-x-3 text-sm">
                         <div className="p-2 bg-green-50 rounded-lg">
                           <Clock className="h-4 w-4 text-green-600" />
                         </div>
                         <div>
                           <p className="font-semibold text-gray-900">
-                        {startDateTime.time} - {endDateTime.time}
+                            {startDateTime.time} - {endDateTime.time}
                           </p>
                           <p className="text-gray-500">Duration: {duration}</p>
                         </div>
-                    </div>
-
+                      </div>
                       <div className="flex items-center space-x-3 text-sm">
                         <div className="p-2 bg-purple-50 rounded-lg">
                           <MapPin className="h-4 w-4 text-purple-600" />
                         </div>
                         <div>
-                          <p className="font-semibold text-gray-900">Room {meeting.meeting_room}</p>
-                          <p className="text-gray-500">Meeting Location</p>
+                          {meeting.meeting_room === 0 ? (
+                            <>
+                              <p className="font-semibold text-green-700">Online meeting</p>
+                              <p className="text-gray-500">Meeting Location</p>
+                            </>
+                          ) : (
+                            <>
+                              <p className="font-semibold text-gray-900">Room {meeting.meeting_room}</p>
+                              <p className="text-gray-500">Meeting Location</p>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -943,9 +980,14 @@ export default function ViewMeetingsPage() {
                   </Label>
                   <Select
                     value={editingMeeting.type}
-                    onValueChange={(value) =>
-                      handleEditInputChange("type", value)
-                    }
+                    onValueChange={(value) => {
+                      handleEditInputChange("type", value);
+                      if (value === "online") {
+                        handleEditInputChange("meeting_room", 0);
+                      } else if (value === "onsite" && editingMeeting.meeting_room === 0) {
+                        handleEditInputChange("meeting_room", ""); // clear room for user to select
+                      }
+                    }}
                   >
                     <SelectTrigger className="rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500">
                       <SelectValue />
@@ -958,33 +1000,35 @@ export default function ViewMeetingsPage() {
                   <p className="text-xs text-gray-500 mt-2">Meeting Type</p>
                 </div>
 
-                {/* Meeting Room */}
-                <div>
-                  <Label
-                    htmlFor="edit-room"
-                    className="text-sm font-semibold text-gray-700 mb-2 block"
-                  >
-                    Meeting Room *
-                  </Label>
-                  <Input
-                    id="edit-room"
-                    type="number"
-                    min="1"
-                    max="5"
-                    value={editingMeeting.meeting_room}
-                    onChange={(e) =>
-                      handleEditInputChange(
-                        "meeting_room",
-                        Number.parseInt(e.target.value) || 0,
-                      )
-                    }
-                    className="rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                    placeholder="1-5"
-                  />
-                  <p className="text-xs text-gray-500 mt-2">
-                    Meeting Room (1-5 only)
-                  </p>
-                </div>
+                {/* Meeting Room - only show if onsite */}
+                {editingMeeting.type === "onsite" && (
+                  <div>
+                    <Label
+                      htmlFor="edit-room"
+                      className="text-sm font-semibold text-gray-700 mb-2 block"
+                    >
+                      Meeting Room *
+                    </Label>
+                    <Input
+                      id="edit-room"
+                      type="number"
+                      min="1"
+                      max="5"
+                      value={editingMeeting.meeting_room}
+                      onChange={(e) =>
+                        handleEditInputChange(
+                          "meeting_room",
+                          Number.parseInt(e.target.value) || 0,
+                        )
+                      }
+                      className="rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                      placeholder="1-5"
+                    />
+                    <p className="text-xs text-gray-500 mt-2">
+                      Meeting Room (1-5 only)
+                    </p>
+                  </div>
+                )}
 
                 {/* Date */}
                 <div>
@@ -1053,91 +1097,89 @@ export default function ViewMeetingsPage() {
                   <Label className="text-sm font-semibold text-gray-700 mb-2 block">
                     Members *
                   </Label>
-
-                  {/* Member Selection Dropdown */}
                   {members.length > 0 ? (
-                    <Select
-                      value={memberToAdd}
-                      onValueChange={handleMemberSelect}
-                    >
-                      <SelectTrigger className="rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500">
-                        <SelectValue placeholder="Select Member" />
-                      </SelectTrigger>
-                      <SelectContent className="rounded-xl">
-                        {members
-                          .filter(
-                            (member) =>
-                              !selectedMembers.find(
-                                (selected) => selected.id === member.id,
-                              ),
-                          )
-                          .map((member) => (
-                            <SelectItem key={member.id} value={member.name}>
-                              <div className="flex items-center space-x-2">
-                                <span className="text-sm">👤</span>
-                                <span>{member.name}</span>
-                                <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">
-                                  {member.role}
-                                </span>
+                    <>
+                      <Select
+                        value={memberToAdd}
+                        onValueChange={(value) => {
+                          if (value) {
+                            handleMemberSelect(value);
+                            setMemberToAdd("");
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500">
+                          <SelectValue placeholder="Click name to add member" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-xl min-w-[300px]">
+                          {members
+                            .filter((member) => !selectedMembers.find((m) => m.id === member.id))
+                            .map((member) => (
+                              <SelectItem key={member.id} value={member.name}>
+                                <div className="flex items-center space-x-3 w-full min-w-[280px]">
+                                  <RoleIcon role={member.role} size="md" />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-gray-900 truncate">{member.name}</div>
+                                    <RoleLabel role={member.role} size="sm" />
+                                  </div>
+                                </div>
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                      {selectedMembers.length > 0 && (
+                        <div className="space-y-3 mt-4">
+                          <Label className="text-xs font-semibold text-gray-600">Selected Members:</Label>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedMembers.map((member) => (
+                              <div
+                                key={member.id}
+                                className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors"
+                              >
+                                <RoleIcon role={member.role} size="md" />
+                                <div className="flex flex-col min-w-0 flex-1">
+                                  <span className="font-medium text-gray-900 truncate">{member.name}</span>
+                                  {member.role ? <RoleLabel role={member.role} size="sm" /> : null}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => removeMember(member.id)}
+                                  className="hover:bg-black hover:bg-opacity-10 rounded-full p-1 transition-colors flex-shrink-0"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
                               </div>
-                            </SelectItem>
-                          ))}
-                        {members.filter(
-                          (member) =>
-                            !selectedMembers.find(
-                              (selected) => selected.id === member.id,
-                            ),
-                        ).length === 0 && (
-                          <SelectItem value="no-more" disabled>
-                            All members selected
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <div className="text-sm text-gray-500 mt-1">
-                      {isLoadingMembers
-                        ? "Loading members..."
-                        : "No member data available"}
-                    </div>
-                  )}
-
-                  {/* Selected Members Display */}
-                  {selectedMembers.length > 0 && (
-                    <div className="space-y-3 mt-4">
-                      <Label className="text-xs font-semibold text-gray-600">
-                        Selected Members:
-                      </Label>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedMembers.map((member) => (
-                          <div
-                            key={member.id}
-                            className="flex items-center space-x-2 px-4 py-2 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-colors"
-                          >
-                            <span className="text-sm">👤</span>
-                            <span className="font-medium text-gray-900">
-                              {member.name}
-                            </span>
-                            <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-600">
-                              {member.role}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => removeMember(member.id)}
-                              className="hover:bg-blue-200 rounded-full p-1 transition-colors"
-                              title="Remove Member"
-                            >
-                              <X className="h-3 w-3 text-gray-600" />
-                            </button>
+                            ))}
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="space-y-3">
+                      <Input
+                        type="text"
+                        value={memberToAdd}
+                        onChange={(e) => setMemberToAdd(e.target.value)}
+                        className="w-full rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="Type member name and press Enter"
+                        onKeyPress={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            if (memberToAdd.trim()) {
+                              handleMemberSelect(memberToAdd.trim());
+                              setMemberToAdd("");
+                            }
+                          }
+                        }}
+                      />
+                      <p className="text-xs text-gray-500">
+                        {isLoadingMembers
+                          ? "Loading member list..."
+                          : "Could not load members. Type name and press Enter to add."}
+                      </p>
                     </div>
                   )}
-
-                  <p className="text-xs text-gray-500 mt-2">
-                    Select members from the list above
-                  </p>
+                  <p className="text-xs text-gray-500 mt-2">Select members from the list above</p>
                 </div>
 
                 {/* Creator (Read-only) */}

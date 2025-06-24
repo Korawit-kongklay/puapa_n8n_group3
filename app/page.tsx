@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toZonedTime } from "date-fns-tz";
+import { Toast } from "@/components/ui/toast";
 
 interface MeetingData {
   topic: string;
@@ -300,6 +301,7 @@ export default function HomePage() {
   const [isChecking, setIsChecking] = useState(false);
   const [checkResult, setCheckResult] = useState<string | null>(null);
   const [isUsingFallbackMembers, setIsUsingFallbackMembers] = useState(false);
+  const [showToast, setShowToast] = useState(false);
 
   useEffect(() => {
     loadMembers();
@@ -473,7 +475,7 @@ export default function HomePage() {
         type: "success",
         text: result,
       });
-
+      setShowToast(true);
       // Reset form on success
       setFormData({
         topic: "",
@@ -500,6 +502,7 @@ export default function HomePage() {
             ? error.message
             : "Failed to submit meeting. Please try again.",
       });
+      setShowToast(true);
     } finally {
       setIsSubmitting(false);
     }
@@ -528,6 +531,14 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      {/* Toast Notification */}
+      <Toast
+        type={message?.type || "success"}
+        message={message?.text || ""}
+        show={showToast && !!message}
+        onClose={() => setShowToast(false)}
+        duration={3500}
+      />
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-200/50 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -595,33 +606,6 @@ export default function HomePage() {
           </CardHeader>
           
           <CardContent className="p-8 space-y-8">
-            {message && (
-              <Alert
-                className={`rounded-xl border-2 ${
-                  message.type === "success" 
-                    ? "bg-green-50 border-green-200" 
-                    : "bg-red-50 border-red-200"
-                }`}
-              >
-                <div className="flex items-center space-x-2">
-                  {message.type === "success" ? (
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                  ) : (
-                    <AlertCircle className="h-5 w-5 text-red-600" />
-                  )}
-                <AlertDescription
-                  className={
-                    message.type === "success"
-                      ? "text-green-800"
-                      : "text-red-800"
-                  }
-                >
-                  {message.text}
-                </AlertDescription>
-                </div>
-              </Alert>
-            )}
-
             {isUsingFallbackMembers && (
               <Alert className="rounded-xl border-2 bg-yellow-50 border-yellow-200">
                 <div className="flex items-center space-x-2">
@@ -632,36 +616,6 @@ export default function HomePage() {
                   </AlertDescription>
                 </div>
               </Alert>
-            )}
-
-            {/* ISO 8601 Preview */}
-            {formData.date && formData.time && (
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-6">
-                <div className="flex items-center space-x-2 mb-3">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <Info className="h-4 w-4 text-green-600" />
-                  </div>
-                  <Label className="text-sm font-semibold text-green-800">
-                  ISO 8601 Format Preview:
-                </Label>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xs font-medium text-green-600">Start:</span>
-                    <code className="text-sm text-green-700 bg-green-100 px-3 py-1 rounded-lg font-mono">
-                      {`${formData.date}T${formData.time}:00.000Z`}
-                    </code>
-                  </div>
-                  {formData.end_time && (
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs font-medium text-green-600">End:</span>
-                      <code className="text-sm text-green-700 bg-green-100 px-3 py-1 rounded-lg font-mono">
-                        {`${formData.date}T${formData.end_time}:00.000Z`}
-                      </code>
-                    </div>
-                  )}
-                </div>
-              </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-8">
