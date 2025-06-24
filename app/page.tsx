@@ -30,7 +30,9 @@ import {
   Video,
   UserPlus,
   Settings,
-  Info
+  Info,
+  Copy,
+  X as CloseIcon
 } from "lucide-react";
 import Link from "next/link";
 import { toZonedTime } from "date-fns-tz";
@@ -543,9 +545,8 @@ export default function HomePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ topic: formData.topic, description: formData.description }),
       });
-      if (!res.ok) throw new Error("AI API error");
       const data = await res.json();
-      setAIDescription(data.description || "");
+      setAIDescription(data.output || data.description || JSON.stringify(data));
     } catch (e) {
       setAIError("เกิดข้อผิดพลาดในการขอคำอธิบายจาก AI");
     } finally {
@@ -691,11 +692,43 @@ export default function HomePage() {
                     className={`rounded-xl border-gray-200 focus:border-blue-500 focus:ring-blue-500 min-h-[120px] ${errors.description ? "border-red-300 focus:border-red-500 focus:ring-red-500" : ""}`}
                   placeholder="Enter meeting description"
                 />
-                {errors.description && (
-                    <p className="text-sm text-red-600 flex items-center space-x-1">
-                      <AlertCircle className="h-4 w-4" />
-                      <span>{errors.description}</span>
-                    </p>
+                {aiDescription && (
+                  <Alert className="rounded-xl bg-blue-50 border-2 border-blue-200 relative flex items-start gap-3 mt-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="font-semibold text-blue-800">AI Suggestion</span>
+                        <div className="flex gap-2 ml-2">
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="text-blue-700 hover:bg-blue-100"
+                            title="คัดลอกไปยังคลิปบอร์ด"
+                            onClick={() => {
+                              if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                                navigator.clipboard.writeText(aiDescription);
+                              }
+                            }}
+                          >
+                            <Copy className="w-5 h-5" />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="text-gray-500 hover:bg-gray-200"
+                            title="ปิดบทความ AI"
+                            onClick={() => setAIDescription("")}
+                          >
+                            <CloseIcon className="w-5 h-5" />
+                          </Button>
+                        </div>
+                      </div>
+                      <AlertDescription className="whitespace-pre-line text-blue-900 text-sm">
+                        {aiDescription}
+                      </AlertDescription>
+                    </div>
+                  </Alert>
                 )}
                 <div className="flex items-center gap-2 mt-2">
                   <Button
@@ -707,32 +740,11 @@ export default function HomePage() {
                     {isGeneratingDescription ? (
                       <span>กำลังปรับปรุงคำอธิบาย...</span>
                     ) : (
-                      <span>ให้ AI ปรับปรุง Description</span>
+                      <span>Improve Description</span>
                     )}
                   </Button>
                   {aiError && <span className="text-red-500 text-sm">{aiError}</span>}
                 </div>
-                {aiDescription && (
-                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-xl">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="font-semibold text-blue-800">AI Suggestion</span>
-                      <Button
-                        type="button"
-                        size="sm"
-                        className="ml-2 bg-blue-600 text-white rounded-lg px-3 py-1"
-                        onClick={() => {
-                          setFormData((prev) => ({ ...prev, description: aiDescription }));
-                          setShowCopySuccess(true);
-                          setTimeout(() => setShowCopySuccess(false), 1500);
-                        }}
-                      >
-                        คัดลอกไปใช้
-                      </Button>
-                    </div>
-                    <div className="whitespace-pre-line text-blue-900 text-sm">{aiDescription}</div>
-                    {showCopySuccess && <div className="text-green-600 text-xs mt-1">คัดลอกแล้ว!</div>}
-                  </div>
-                )}
               </div>
 
               {/* Type Field */}

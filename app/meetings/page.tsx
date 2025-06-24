@@ -402,7 +402,7 @@ export default function ViewMeetingsPage() {
       setIsEditModalOpen(false);
       setEditingMeeting(null);
       // Show toast and delay refresh
-      setRefreshToastMessage("กำลังอัปเดตข้อมูล กรุณารอสักครู่...");
+      setRefreshToastMessage("Updating information. Please wait a moment...");
       setShowRefreshToast(true);
       setTimeout(() => {
         loadMeetings();
@@ -455,7 +455,7 @@ export default function ViewMeetingsPage() {
       setDeleteModalOpen(false);
       setMeetingToDelete(null);
       // Show toast and delay refresh
-      setRefreshToastMessage("กำลังอัปเดตข้อมูล กรุณารอสักครู่...");
+      setRefreshToastMessage("Updating information. Please wait a moment...");
       setShowRefreshToast(true);
       setTimeout(() => {
         loadMeetings();
