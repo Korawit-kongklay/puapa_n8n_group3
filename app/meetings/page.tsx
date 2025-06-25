@@ -447,7 +447,7 @@ export default function ViewMeetingsPage() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            id: meetingToDelete.id + 1,
+            id: meetingToDelete.id,
           }),
         },
       );
